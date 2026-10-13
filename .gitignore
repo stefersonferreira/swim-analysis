@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+node_modules/
+frontend/dist/
+data/*
+!data/.gitkeep
+.env
+tests/golden/*.mp4
+tests/golden/*.mov
+models/*.onnx
