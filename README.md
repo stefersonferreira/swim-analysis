@@ -2,7 +2,7 @@
 
 Ferramenta para medir provas de natação a partir de um vídeo de celular: reação, 15 m,
 breakout, braçadas, tempo de ciclo, velocidade, distância por ciclo, viradas e parciais.
-Estilos da v1: livre (crawl) e peito; piscinas de 25 m, 50 m e 25 jardas.
+Estilos da v1: livre (crawl) e peito; piscinas de 25 m e 50 m. Tudo em metros.
 
 **Estado atual (etapa 1, entregas 0 a 4):** você envia o vídeo, calibra a piscina com
 alguns cliques e marca os eventos à mão na tela de revisão; o sistema calcula todas as
@@ -98,7 +98,7 @@ BASE_URL=http://localhost:8080 uv run --no-project --with playwright==1.56.0 \
   python tests/e2e/ui_smoke.py /tmp/teste.mp4
 ```
 
-O vídeo de referência usado nos testes (`tests/golden/reference_free_50yd.mp4`) não vai para o
+O vídeo de referência usado nos testes (`tests/golden/reference_race.mp4`) não vai para o
 git; coloque-o nessa pasta para rodar o teste correspondente.
 
 Regras para quem programa (inclusive agentes de IA): [`AGENTS.md`](AGENTS.md).

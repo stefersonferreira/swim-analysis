@@ -7,8 +7,7 @@ a ordem de construção e os critérios de pronto estão lá e na tabela abaixo.
 
 1. Leia a spec e o contrato do módulo (`pipeline/swimcv/contracts/`) antes de mexer nele.
 2. Uma entrega por vez. Só comece a próxima quando a anterior cumprir o critério de pronto.
-3. Unidades SI por dentro (metros, segundos). Jardas só na apresentação
-   (`swimcv.metrics.units.display`). **Tempo sempre pelo PTS** da tabela de quadros
+3. Só metros e segundos, por dentro e na tela. Piscinas de 25 m ou 50 m. **Tempo sempre pelo PTS** da tabela de quadros
    (`frames.parquet`), nunca por `índice / fps`: vídeos de celular têm taxa variável.
 4. Métricas são funções puras (`swimcv/metrics/compute.py`): sem arquivo, banco ou relógio.
 5. Mudou um contrato? Suba `schema_version`, rode `uv run python tools/export_schemas.py`

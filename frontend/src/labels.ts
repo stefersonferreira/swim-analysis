@@ -1,4 +1,4 @@
-import type { EventType, Metric, PoolUnit, Stroke } from "./types";
+import type { EventType, Metric, Stroke } from "./types";
 
 export const EVENT_LABEL: Record<EventType, string> = {
   start_signal: "Sinal de largada",
@@ -65,20 +65,18 @@ export const METRIC_LABEL: Record<string, string> = {
 const UNIT_LABEL: Record<string, string> = {
   s: "s",
   m: "m",
-  yd: "jd",
   "m/s": "m/s",
-  "yd/s": "jd/s",
   count: "",
   "s/cycle": "s/ciclo",
   "cycles/min": "ciclos/min",
 };
 
 export function fmtMetric(m: Metric | undefined): string {
-  if (!m || m.status !== "ok" || m.display_value == null) return "—";
-  const v = m.display_value;
+  if (!m || m.status !== "ok" || m.value == null) return "—";
+  const v = m.value;
   const digits = m.unit === "count" ? 0 : m.unit === "cycles/min" ? 1 : 2;
   const num = v.toFixed(digits).replace(".", ",");
-  const unit = UNIT_LABEL[m.display_unit] ?? m.display_unit;
+  const unit = UNIT_LABEL[m.unit] ?? m.unit;
   return unit ? `${num} ${unit}` : num;
 }
 
@@ -86,6 +84,3 @@ export function fmtTime(t: number): string {
   return t.toFixed(2).replace(".", ",") + " s";
 }
 
-export function unitLabel(u: PoolUnit) {
-  return u === "yd" ? "jd" : "m";
-}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { Link } from "../App";
-import { STROKE_LABEL, unitLabel } from "../labels";
+import { STROKE_LABEL } from "../labels";
 import type { Video } from "../types";
 
 const STATUS: Record<Video["status"], string> = {
@@ -79,8 +79,7 @@ export default function VideoList() {
                 <td>{v.athlete ?? "—"}</td>
                 <td>{STROKE_LABEL[v.race.stroke]}</td>
                 <td>
-                  {v.race.distance} {unitLabel(v.race.pool_unit)} (piscina {v.race.pool_length}{" "}
-                  {unitLabel(v.race.pool_unit)})
+                  {v.race.distance} m (piscina {v.race.pool_length} m)
                 </td>
                 <td>
                   <span className={`status ${v.status}`}>{STATUS[v.status]}</span>

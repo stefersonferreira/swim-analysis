@@ -5,7 +5,7 @@ import FrameView from "../components/FrameView";
 import MetricsPanel from "../components/MetricsPanel";
 import RaceFields from "../components/RaceFields";
 import Timeline, { nearestFrame } from "../components/Timeline";
-import { EVENT_COLOR, EVENT_KEY, EVENT_LABEL, STROKE_LABEL, fmtTime, unitLabel } from "../labels";
+import { EVENT_COLOR, EVENT_KEY, EVENT_LABEL, STROKE_LABEL, fmtTime } from "../labels";
 import type {
   Alert,
   Anchor,
@@ -24,16 +24,13 @@ const RATES = [0.25, 0.5, 1, 2];
 const KEY_TO_TYPE: Record<string, EventType> = Object.fromEntries(
   Object.entries(EVENT_KEY).map(([type, key]) => [key.toLowerCase(), type as EventType]),
 );
-/** Perfil padrão a partir da prova: bandeirolas a 5 m (ou 5 jd) e boias a 15 m de cada parede. */
+/** Perfil padrão a partir da prova: bandeirolas a 5 m e boias a 15 m de cada parede. */
 export function defaultPool(race: RaceInfo): PoolProfile {
-  const unit = race.pool_unit === "yd" ? 0.9144 : 1;
-  const L = Math.round(race.pool_length * unit * 1000) / 1000;
-  const flag = Math.round(5 * unit * 1000) / 1000;
-  const marks = [flag, L - 15, 15, L - flag]
-    .map((m) => Math.round(m * 1000) / 1000)
+  const L = race.pool_length;
+  const marks = [5, L - 15, 15, L - 5]
     .filter((m, i, a) => m > 0 && m < L && a.indexOf(m) === i)
-    .sort((a, b) => a - b);
-  return { name: `Piscina ${race.pool_length} ${race.pool_unit}`, length_m: L, lanes: 8, lane_width_m: 2.5, marks_m: marks };
+    .sort((x, y) => x - y);
+  return { name: `Piscina ${L} m`, length_m: L, lanes: 8, lane_width_m: 2.5, marks_m: marks };
 }
 
 type Mode = "review" | "calibration";
@@ -358,8 +355,6 @@ export default function Review({ videoId }: { videoId: string }) {
   if (!video || !video.meta || !race || !pool || !pts.length) return <div className="page muted">Carregando…</div>;
 
   const { proxy_width: W, proxy_height: H } = video.meta;
-  const u = unitLabel(race.pool_unit);
-  const unitM = race.pool_unit === "yd" ? 0.9144 : 1;
   const here = events.filter((e) => e.frame === frame && e.image_xy);
   const grid = mode === "calibration" ? grids[String(frame)] ?? (nearestResult ? grids[String(nearestResult.frame)] : undefined)
     : showGrid && nearestResult ? grids[String(nearestResult.frame)] : undefined;
@@ -373,7 +368,7 @@ export default function Review({ videoId }: { videoId: string }) {
           <h1>{video.title}</h1>
           <p className="muted">
             {video.athlete ? `${video.athlete} · ` : ""}
-            {STROKE_LABEL[race.stroke]} · {race.distance} {u} · piscina {race.pool_length} {u}
+            {STROKE_LABEL[race.stroke]} · {race.distance} m · piscina {race.pool_length} m
             {race.lane ? ` · raia ${race.lane}` : ""} · {video.meta.n_frames} quadros a{" "}
             {video.meta.fps_measured.toFixed(1)} fps{video.meta.variable_frame_rate ? " (taxa variável)" : ""}
             {" · "}
@@ -448,7 +443,7 @@ export default function Review({ videoId }: { videoId: string }) {
                     stroke={EVENT_COLOR[e.type]} strokeWidth={e.id === selectedId ? 4 : 2.5} />
                   <text x={e.image_xy![0] + W / 90} y={e.image_xy![1]} className="ev-label" fill={EVENT_COLOR[e.type]}>
                     {EVENT_LABEL[e.type]}
-                    {e.x_m != null ? ` · ${(e.x_m / unitM).toFixed(1)} ${u}` : ""}
+                    {e.x_m != null ? ` · ${e.x_m.toFixed(1).replace(".", ",")} m` : ""}
                   </text>
                 </g>
               ))}
@@ -538,7 +533,7 @@ export default function Review({ videoId }: { videoId: string }) {
                   <h3 style={{ color: EVENT_COLOR[selected.type] }}>{EVENT_LABEL[selected.type]}</h3>
                   <p>
                     Quadro {selected.frame} · {fmtTime(selected.t)}
-                    {selected.x_m != null && ` · ${(selected.x_m / unitM).toFixed(2)} ${u} da parede de saída`}
+                    {selected.x_m != null && ` · ${selected.x_m.toFixed(2).replace(".", ",")} m da parede de saída`}
                   </p>
                   {!selected.image_xy && (
                     <p className="hint">

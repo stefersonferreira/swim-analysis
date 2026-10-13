@@ -2,7 +2,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field, model_validator
 
-YARD_M = 0.9144
+POOL_LENGTHS_M = (25, 50)
 
 
 class Stroke(StrEnum):
@@ -10,19 +10,13 @@ class Stroke(StrEnum):
     BREASTSTROKE = "breaststroke"
 
 
-class PoolUnit(StrEnum):
-    METERS = "m"
-    YARDS = "yd"
-
-
 class RaceInfo(BaseModel):
-    """Dados da prova informados no upload."""
+    """Dados da prova informados no upload. Tudo em metros."""
 
-    schema_version: int = 1
+    schema_version: int = 2
     stroke: Stroke
-    distance: int = Field(description="Distância da prova na unidade da piscina (50, 100)")
-    pool_length: int = Field(25, description="Comprimento da piscina na unidade da piscina")
-    pool_unit: PoolUnit = PoolUnit.METERS
+    distance: int = Field(description="Distância da prova em metros (50, 100)")
+    pool_length: int = Field(25, description="Comprimento da piscina em metros (25 ou 50)")
     lane: int | None = None
     cap_color: str | None = None
     official_final_s: float | None = None
@@ -33,6 +27,8 @@ class RaceInfo(BaseModel):
 
     @model_validator(mode="after")
     def _check(self) -> "RaceInfo":
+        if self.pool_length not in POOL_LENGTHS_M:
+            raise ValueError("piscina deve ter 25 ou 50 m")
         if self.distance % self.pool_length != 0:
             raise ValueError("a distância precisa ser múltiplo do comprimento da piscina")
         if len(self.official_splits_s) > self.n_lengths:
@@ -40,12 +36,8 @@ class RaceInfo(BaseModel):
         return self
 
     @property
-    def unit_m(self) -> float:
-        return YARD_M if self.pool_unit == PoolUnit.YARDS else 1.0
-
-    @property
     def pool_length_m(self) -> float:
-        return self.pool_length * self.unit_m
+        return float(self.pool_length)
 
     @property
     def n_lengths(self) -> int:

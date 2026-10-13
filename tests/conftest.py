@@ -7,7 +7,7 @@ import pytest
 
 from swimcv.ingest.run import passthrough_args
 
-REFERENCE_VIDEO = Path(__file__).parent / "golden" / "reference_free_50yd.mp4"
+REFERENCE_VIDEO = Path(__file__).parent / "golden" / "reference_race.mp4"
 BITS = 12
 CELL = 48
 

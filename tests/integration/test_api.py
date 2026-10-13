@@ -51,7 +51,7 @@ def client(tmp_path_factory):
 def video(client, tmp_path_factory):
     src = tmp_path_factory.mktemp("src") / "prova.mp4"
     make_vfr_video(src)
-    race = {"stroke": "freestyle", "distance": 50, "pool_length": 25, "pool_unit": "m"}
+    race = {"stroke": "freestyle", "distance": 50, "pool_length": 25}
     with src.open("rb") as f:
         r = client.post(
             "/api/videos",
@@ -135,10 +135,12 @@ def test_events_metrics_and_calibration(client, video):
     assert all(e["id"] != bo["id"] for e in r.json()["events"])
 
 
-def test_race_update_changes_units(client, video):
+def test_race_update(client, video):
     vid = video["id"]
-    race = {"stroke": "breaststroke", "distance": 50, "pool_length": 25, "pool_unit": "yd"}
+    race = {"stroke": "breaststroke", "distance": 100, "pool_length": 50}
     assert client.put(f"/api/videos/{vid}/race", json=race).status_code == 200
     out = client.get(f"/api/videos/{vid}/metrics").json()
     assert out["race"]["stroke"] == "breaststroke"
     assert any(m["name"] == "wall_time_s" for m in out["metrics"])
+    bad = {"stroke": "freestyle", "distance": 50, "pool_length": 23}
+    assert client.put(f"/api/videos/{vid}/race", json=bad).status_code == 422

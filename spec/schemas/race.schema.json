@@ -1,13 +1,5 @@
 {
   "$defs": {
-    "PoolUnit": {
-      "enum": [
-        "m",
-        "yd"
-      ],
-      "title": "PoolUnit",
-      "type": "string"
-    },
     "Stroke": {
       "enum": [
         "freestyle",
@@ -17,10 +9,10 @@
       "type": "string"
     }
   },
-  "description": "Dados da prova informados no upload.",
+  "description": "Dados da prova informados no upload. Tudo em metros.",
   "properties": {
     "schema_version": {
-      "default": 1,
+      "default": 2,
       "title": "Schema Version",
       "type": "integer"
     },
@@ -28,19 +20,15 @@
       "$ref": "#/$defs/Stroke"
     },
     "distance": {
-      "description": "Distância da prova na unidade da piscina (50, 100)",
+      "description": "Distância da prova em metros (50, 100)",
       "title": "Distance",
       "type": "integer"
     },
     "pool_length": {
       "default": 25,
-      "description": "Comprimento da piscina na unidade da piscina",
+      "description": "Comprimento da piscina em metros (25 ou 50)",
       "title": "Pool Length",
       "type": "integer"
-    },
-    "pool_unit": {
-      "$ref": "#/$defs/PoolUnit",
-      "default": "m"
     },
     "lane": {
       "anyOf": [

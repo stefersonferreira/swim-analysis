@@ -29,9 +29,9 @@ def main(video: str, out: str = "e2e-shots") -> None:
         page.set_input_files("input[type=file]", video)
         page.get_by_label("Nome da prova").fill("Teste 50 livre")
         page.get_by_label("Atleta").fill("Atleta Teste")
-        page.get_by_label("Piscina").select_option("25yd")
+        page.get_by_label("Piscina").select_option("25")
         page.get_by_label("Tempo final oficial").fill("21,80")
-        page.get_by_label("Parcial oficial 25 jd").fill("10,58")
+        page.get_by_label("Parcial oficial 25 m").fill("10,58")
         page.get_by_label("Tempo final oficial").press("Tab")
         page.screenshot(path=shots / "01-upload.png")
         page.get_by_role("button", name="Enviar").click()
@@ -101,7 +101,7 @@ def main(video: str, out: str = "e2e-shots") -> None:
         assert "21,80 s" in metrics and "10,58 s" in metrics, metrics
         # o clique logo depois da tecla B deu posição ao breakout
         bo_row = page.locator(".metrics tr", has_text="Breakout da largada").inner_text()
-        assert "jd" in bo_row, bo_row
+        assert bo_row.strip().endswith(" m"), bo_row
         # cada clique foi para o evento certo, mesmo com teclas rápidas
         vid = page.url.rstrip("/").split("/")[-1]
         evs = page.request.get(f"{BASE}/api/videos/{vid}/events").json()["events"]

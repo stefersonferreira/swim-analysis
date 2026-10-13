@@ -1,4 +1,4 @@
-import { METRIC_LABEL, fmtMetric, unitLabel } from "../labels";
+import { METRIC_LABEL, fmtMetric } from "../labels";
 import type { Metric, RaceInfo } from "../types";
 
 function Cell({ m }: { m: Metric | undefined }) {
@@ -20,7 +20,6 @@ export default function MetricsPanel({ metrics, race }: { metrics: Metric[]; rac
         (k?.turn === undefined || m.turn_index === k.turn),
     );
   const n = race.distance / race.pool_length;
-  const u = unitLabel(race.pool_unit);
   const start = ["reaction_s", "start_15m_s", "start_breakout_m", "start_underwater_s",
     "start_underwater_speed_mps"];
   const perLength = ["strokes", "tempo_s_per_cycle", "stroke_rate_cpm", "swim_speed_mps", "dpc_m"];
@@ -47,7 +46,7 @@ export default function MetricsPanel({ metrics, race }: { metrics: Metric[]; rac
           <tr>
             <th />
             {Array.from({ length: n }, (_, k) => (
-              <th key={k}>{(k + 1) * race.pool_length} {u}</th>
+              <th key={k}>{(k + 1) * race.pool_length} m</th>
             ))}
           </tr>
         </thead>
@@ -77,7 +76,7 @@ export default function MetricsPanel({ metrics, race }: { metrics: Metric[]; rac
               <tr>
                 <th />
                 {Array.from({ length: n - 1 }, (_, k) => (
-                  <th key={k}>{(k + 1) * race.pool_length} {u}</th>
+                  <th key={k}>{(k + 1) * race.pool_length} m</th>
                 ))}
               </tr>
             </thead>

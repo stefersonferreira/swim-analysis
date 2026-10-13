@@ -1,11 +1,6 @@
 import type { RaceInfo } from "../types";
-import { unitLabel } from "../labels";
 
-const POOLS: { label: string; length: number; unit: "m" | "yd" }[] = [
-  { label: "25 m", length: 25, unit: "m" },
-  { label: "50 m", length: 50, unit: "m" },
-  { label: "25 jardas", length: 25, unit: "yd" },
-];
+const POOLS = [25, 50];
 
 function parseTime(s: string): number | null {
   const t = s.trim().replace(",", ".");
@@ -27,7 +22,6 @@ export default function RaceFields(props: {
   const { race, onChange } = props;
   const nLengths = race.distance / race.pool_length;
   const set = (patch: Partial<RaceInfo>) => onChange({ ...race, ...patch });
-  const poolKey = `${race.pool_length}${race.pool_unit}`;
   const splits = race.official_splits_s ?? [];
 
   return (
@@ -45,16 +39,16 @@ export default function RaceFields(props: {
       <label>
         Piscina
         <select
-          value={poolKey}
+          value={race.pool_length}
           onChange={(e) => {
-            const p = POOLS.find((x) => `${x.length}${x.unit}` === e.target.value)!;
-            const distance = Math.max(p.length, Math.round(race.distance / p.length) * p.length);
-            set({ pool_length: p.length, pool_unit: p.unit, distance, official_splits_s: [] });
+            const length = Number(e.target.value);
+            const distance = Math.max(length, Math.round(race.distance / length) * length);
+            set({ pool_length: length, distance, official_splits_s: [] });
           }}
         >
           {POOLS.map((p) => (
-            <option key={p.label} value={`${p.length}${p.unit}`}>
-              {p.label}
+            <option key={p} value={p}>
+              {p} m
             </option>
           ))}
         </select>
@@ -67,7 +61,7 @@ export default function RaceFields(props: {
         >
           {[50, 100].filter((d) => d % race.pool_length === 0).map((d) => (
             <option key={d} value={d}>
-              {d} {unitLabel(race.pool_unit)}
+              {d} m
             </option>
           ))}
         </select>
@@ -95,7 +89,7 @@ export default function RaceFields(props: {
       </label>
       {Array.from({ length: nLengths - 1 }, (_, i) => (
         <label key={`${race.distance}-${race.pool_length}-${i}`}>
-          Parcial oficial {(i + 1) * race.pool_length} {unitLabel(race.pool_unit)}
+          Parcial oficial {(i + 1) * race.pool_length} m
           <input
             placeholder="opcional"
             defaultValue={fmtInput(splits[i])}

@@ -1,5 +1,4 @@
 export type Stroke = "freestyle" | "breaststroke";
-export type PoolUnit = "m" | "yd";
 
 export type EventType =
   | "start_signal"
@@ -16,7 +15,6 @@ export interface RaceInfo {
   stroke: Stroke;
   distance: number;
   pool_length: number;
-  pool_unit: PoolUnit;
   lane?: number | null;
   cap_color?: string | null;
   official_final_s?: number | null;
@@ -65,8 +63,6 @@ export interface Metric {
   name: string;
   value: number | null;
   unit: string;
-  display_value: number | null;
-  display_unit: string;
   length_index: number | null;
   turn_index: number | null;
   status: "ok" | "not_measured";

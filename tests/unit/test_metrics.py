@@ -1,85 +1,81 @@
-"""Testes da biblioteca de métricas.
+"""Testes da biblioteca de métricas (tudo em metros).
 
-O cenário de crawl reproduz os números publicados no vídeo de referência
-(50 jd livre): tempo 0,96 / 1,00 s/ciclo, velocidade 2,22 / 2,13 jd/s,
-distância por ciclo 2,13 / 2,13 jd, reação 0,67 s, submerso 3,66 s, parciais oficiais.
+O cenário de crawl (50 m livre em piscina de 25 m) segue o mesmo padrão do vídeo de
+referência: tempo 0,96 / 1,00 s/ciclo, velocidade 2,03 / 1,95 m/s, logo distância por ciclo
+1,95 / 1,95 m; reação 0,67 s, submerso 3,66 s, parciais oficiais.
 """
 
 import pytest
 
-from swimcv.contracts import Event, EventType, MetricStatus, PoolUnit, RaceInfo, Stroke
-from swimcv.contracts.race import YARD_M
-from swimcv.metrics import compute_metrics, display, split_lengths
+from swimcv.contracts import Event, EventType, MetricStatus, RaceInfo, Stroke
+from swimcv.metrics import compute_metrics, split_lengths
 
 E = EventType
-L_YD = 25 * YARD_M  # 22.86 m
+L = 25.0
 
 
 def ev(kind, t, x_m=None, mark_m=None):
     return Event(type=kind, frame=int(round(t * 30)), t=t, x_m=x_m, mark_m=mark_m)
 
 
-def reference_free_50yd() -> tuple[RaceInfo, list[Event]]:
+def reference_free_50m() -> tuple[RaceInfo, list[Event]]:
     race = RaceInfo(
         stroke=Stroke.FREESTYLE,
         distance=50,
         pool_length=25,
-        pool_unit=PoolUnit.YARDS,
         lane=3,
         official_final_s=21.80,
         official_splits_s=[10.58],
     )
-    v0 = 2.22 * YARD_M  # m/s
-    v1 = 2.13 * YARD_M
-    bo0_d = 10.8 * YARD_M
-    bo1_d = 6.0 * YARD_M
+    v0, v1 = 2.03, 1.95  # m/s
+    bo0_d, bo1_d = 9.9, 5.5  # m da parede de impulsão
     evs = [
         ev(E.START_SIGNAL, 1.00),
         ev(E.FEET_OFF, 1.67),
         ev(E.ENTRY, 2.30),
         ev(E.BREAKOUT, 5.96, x_m=bo0_d),
         # ponto a 5 m da parede oposta, no mesmo ritmo
-        ev(E.MARK_PASS, 5.96 + (L_YD - 5 - bo0_d) / v0, mark_m=L_YD - 5),
+        ev(E.MARK_PASS, 5.96 + (L - 5 - bo0_d) / v0, mark_m=L - 5),
     ]
     evs += [ev(E.STROKE, 6.10 + 0.48 * i) for i in range(12)]
     t_wall = 1.00 + 10.58
-    evs.append(ev(E.WALL_FEET, t_wall, x_m=L_YD))
+    evs.append(ev(E.WALL_FEET, t_wall, x_m=L))
     t_bo1 = t_wall + 2.39
-    evs.append(ev(E.BREAKOUT, t_bo1, x_m=L_YD - bo1_d))
-    evs.append(ev(E.MARK_PASS, t_bo1 + (L_YD - 5 - bo1_d) / v1, mark_m=L_YD - 5))
+    evs.append(ev(E.BREAKOUT, t_bo1, x_m=L - bo1_d))
+    evs.append(ev(E.MARK_PASS, t_bo1 + (L - 5 - bo1_d) / v1, mark_m=L - 5))
     evs += [ev(E.STROKE, t_bo1 + 0.15 + 0.50 * i) for i in range(18)]
     evs.append(ev(E.FINISH_TOUCH, 1.00 + 21.80, x_m=0.0))
     return race, evs
 
 
-def test_reference_video_numbers():
-    race, evs = reference_free_50yd()
+def test_reference_scenario_numbers():
+    race, evs = reference_free_50m()
     r = compute_metrics(race, evs)
-    yd = lambda name, **kw: display(r.get(name, **kw), race.pool_unit)[0]  # noqa: E731
 
     assert r.value("reaction_s") == pytest.approx(0.67)
     assert r.value("start_underwater_s") == pytest.approx(3.66)
-    assert yd("start_breakout_m") == pytest.approx(10.8)
+    assert r.value("start_breakout_m") == pytest.approx(9.9)
     assert r.value("strokes", length_index=0) == 12
     assert r.value("strokes", length_index=1) == 18
     assert r.value("tempo_s_per_cycle", length_index=0) == pytest.approx(0.96)
     assert r.value("tempo_s_per_cycle", length_index=1) == pytest.approx(1.00)
-    assert yd("swim_speed_mps", length_index=0) == pytest.approx(2.22)
-    assert yd("swim_speed_mps", length_index=1) == pytest.approx(2.13)
-    # 2,22 x 0,96 = 2,13 jd e 2,13 x 1,00 = 2,13 jd, como publicado
-    assert round(yd("dpc_m", length_index=0), 2) == 2.13
-    assert round(yd("dpc_m", length_index=1), 2) == 2.13
-    assert yd("turn_breakout_m", turn_index=0) == pytest.approx(6.0)
+    assert r.value("swim_speed_mps", length_index=0) == pytest.approx(2.03)
+    assert r.value("swim_speed_mps", length_index=1) == pytest.approx(1.95)
+    # distância por ciclo = velocidade x tempo de ciclo
+    assert r.value("dpc_m", length_index=0) == pytest.approx(2.03 * 0.96)
+    assert r.value("dpc_m", length_index=1) == pytest.approx(1.95 * 1.00)
+    assert r.value("turn_breakout_m", turn_index=0) == pytest.approx(5.5)
     assert r.value("turn_underwater_s", turn_index=0) == pytest.approx(2.39)
     split = r.get("split_s", length_index=0)
     assert split.value == pytest.approx(10.58) and split.source == "official"
     assert r.value("final_time_s", length_index=1) == pytest.approx(21.80)
     assert r.value("stroke_rate_cpm", length_index=0) == pytest.approx(62.5)
+    assert all(m.unit in {"s", "m", "m/s", "count", "s/cycle", "cycles/min"} for m in r.metrics)
     assert not [a for a in r.alerts if a.kind in ("split_mismatch", "dpc_out_of_range")]
 
 
 def test_lengths_split_by_closing_touch():
-    race, evs = reference_free_50yd()
+    race, evs = reference_free_50m()
     lengths = split_lengths(race, evs)
     assert [len(ln.of(E.STROKE)) for ln in lengths] == [12, 18]
     assert lengths[0].of(E.WALL_FEET) and not lengths[1].of(E.WALL_FEET)
@@ -87,7 +83,7 @@ def test_lengths_split_by_closing_touch():
 
 
 def test_missing_start_signal_is_not_measured_not_estimated():
-    race, evs = reference_free_50yd()
+    race, evs = reference_free_50m()
     evs = [e for e in evs if e.type != E.START_SIGNAL]
     r = compute_metrics(race, evs)
     m = r.get("reaction_s")
@@ -98,14 +94,14 @@ def test_missing_start_signal_is_not_measured_not_estimated():
 
 
 def test_split_mismatch_alert():
-    race, evs = reference_free_50yd()
+    race, evs = reference_free_50m()
     race = race.model_copy(update={"official_splits_s": [10.30]})
     r = compute_metrics(race, evs)
     assert any(a.kind == "split_mismatch" and a.length_index == 0 for a in r.alerts)
 
 
 def test_missing_stroke_triggers_irregular_alert():
-    race, evs = reference_free_50yd()
+    race, evs = reference_free_50m()
     strokes0 = [e for e in evs if e.type == E.STROKE and e.t < 11]
     evs = [e for e in evs if e.id != strokes0[6].id]
     r = compute_metrics(race, evs)
@@ -113,10 +109,9 @@ def test_missing_stroke_triggers_irregular_alert():
 
 
 def test_15m_interpolated_between_positions():
-    race, evs = reference_free_50yd()
+    race, evs = reference_free_50m()
     r = compute_metrics(race, evs)
-    v0 = 2.22 * YARD_M
-    expected = 5.96 + (15 - 10.8 * YARD_M) / v0 - 1.00
+    expected = 5.96 + (15 - 9.9) / 2.03 - 1.00
     assert r.value("start_15m_s") == pytest.approx(expected)
 
 
@@ -176,4 +171,13 @@ def test_turn_5m_in_out():
 def test_race_validation():
     with pytest.raises(ValueError):
         RaceInfo(stroke=Stroke.FREESTYLE, distance=60, pool_length=25)
+    with pytest.raises(ValueError, match="25 ou 50"):
+        RaceInfo(stroke=Stroke.FREESTYLE, distance=66, pool_length=33)
+    # campo antigo de unidade é ignorado (dados gravados antes da mudança)
+    assert (
+        RaceInfo.model_validate(
+            {"stroke": "freestyle", "distance": 50, "pool_length": 25, "pool_unit": "m"}
+        ).pool_length_m
+        == 25.0
+    )
     assert RaceInfo(stroke=Stroke.FREESTYLE, distance=100, pool_length=25).n_lengths == 4

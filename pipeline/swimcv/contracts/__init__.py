@@ -2,7 +2,7 @@
 
 Regra: todo arquivo gravado por um módulo é validado por um destes modelos e carrega
 `schema_version`. Mudar um contrato exige subir a versão e atualizar os testes.
-Unidades sempre SI (metros, segundos); jardas só na apresentação.
+Unidades sempre SI (metros, segundos).
 """
 
 from swimcv.contracts.calibration import (
@@ -14,7 +14,7 @@ from swimcv.contracts.calibration import (
 )
 from swimcv.contracts.events import Event, EventSource, EventType
 from swimcv.contracts.metrics import Alert, Metric, MetricsReport, MetricStatus
-from swimcv.contracts.race import PoolUnit, RaceInfo, Stroke
+from swimcv.contracts.race import RaceInfo, Stroke
 from swimcv.contracts.video import VideoMeta
 
 __all__ = [
@@ -30,7 +30,6 @@ __all__ = [
     "MetricStatus",
     "MetricsReport",
     "PoolProfile",
-    "PoolUnit",
     "RaceInfo",
     "Stroke",
     "VideoMeta",

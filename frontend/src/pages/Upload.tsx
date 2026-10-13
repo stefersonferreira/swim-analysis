@@ -12,7 +12,6 @@ export default function Upload() {
     stroke: "freestyle",
     distance: 50,
     pool_length: 25,
-    pool_unit: "m",
     lane: null,
     official_final_s: null,
     official_splits_s: [],

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1 — 2026-10-13
+
+- Só metros: removido todo suporte a jardas (piscina de 25 jd, conversões e rótulos "jd").
+  RaceInfo passa a schema_version 2, sem o campo pool_unit; piscinas aceitas: 25 m e 50 m.
+
 ## 0.1.0 — 2026-10-13
 
 Etapa 1, entregas 0 a 4: uso próprio com marcação manual de eventos.

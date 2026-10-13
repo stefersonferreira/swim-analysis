@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.db import AuditLog, Event, Video
 from swimcv import contracts as c
 from swimcv.calibration import grid_lines, solve
-from swimcv.metrics import compute_metrics, display, resolve_positions
+from swimcv.metrics import compute_metrics, resolve_positions
 
 
 def race_of(video: Video) -> c.RaceInfo:
@@ -83,10 +83,7 @@ def metrics_payload(db: Session, video: Video) -> dict:
     rows = live_events(db, video.id)
     resolved = resolve_positions([to_contract(e) for e in rows], calibration_of(video))
     report = compute_metrics(race, resolved)
-    metrics = []
-    for m in report.metrics:
-        value, unit = display(m, race.pool_unit)
-        metrics.append({**m.model_dump(mode="json"), "display_value": value, "display_unit": unit})
+    metrics = [m.model_dump(mode="json") for m in report.metrics]
     x_by_id = {e.id: e.x_m for e in resolved}
     return {
         "events": [event_dict(e, x_by_id.get(e.id)) for e in rows],
