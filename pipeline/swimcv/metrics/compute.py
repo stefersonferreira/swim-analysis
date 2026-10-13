@@ -145,6 +145,11 @@ def _linfit_slope(ts: list[float], ds: list[float]) -> float:
     return num / den
 
 
+def _br(v: float, digits: int = 2) -> str:
+    """Número no formato brasileiro para as mensagens (vírgula decimal)."""
+    return f"{v:.{digits}f}".replace(".", ",")
+
+
 class _Builder:
     def __init__(self) -> None:
         self.report = MetricsReport()
@@ -311,8 +316,8 @@ def compute_metrics(race: RaceInfo, events: list[Event]) -> MetricsReport:
             if not DPC_RANGE_M[0] <= dpc <= DPC_RANGE_M[1]:
                 b.alert(
                     "dpc_out_of_range",
-                    f"Distância por ciclo {dpc:.2f} m fora de {DPC_RANGE_M[0]}–"
-                    f"{DPC_RANGE_M[1]} m: confira braçadas e posições",
+                    f"Distância por ciclo {_br(dpc)} m fora de {_br(DPC_RANGE_M[0], 1)}–"
+                    f"{_br(DPC_RANGE_M[1], 1)} m: confira braçadas e posições",
                     length_index=k,
                 )
         else:
@@ -326,8 +331,8 @@ def compute_metrics(race: RaceInfo, events: list[Event]) -> MetricsReport:
                 if med > 0 and abs(g - med) / med > STROKE_IRREGULARITY:
                     b.alert(
                         "stroke_irregular",
-                        f"Intervalo entre braçadas {g:.2f} s difere mais de 30% da "
-                        f"mediana ({med:.2f} s): braçada faltando ou sobrando?",
+                        f"Intervalo entre braçadas {_br(g)} s difere mais de 30% da "
+                        f"mediana ({_br(med)} s): braçada faltando ou sobrando?",
                         length_index=k,
                         t_from=strokes[i].t,
                         t_to=strokes[i + step].t,
@@ -350,8 +355,8 @@ def compute_metrics(race: RaceInfo, events: list[Event]) -> MetricsReport:
             if measured is not None and abs(measured - official) > SPLIT_TOLERANCE_S:
                 b.alert(
                     "split_mismatch",
-                    f"Tempo medido {measured:.2f} s difere do oficial {official:.2f} s "
-                    f"em mais de {SPLIT_TOLERANCE_S} s: confira o sinal de largada e o toque",
+                    f"Tempo medido {_br(measured)} s difere do oficial {_br(official)} s "
+                    f"em mais de {_br(SPLIT_TOLERANCE_S)} s: confira o sinal de largada e o toque",
                     length_index=k,
                 )
         elif measured is not None:
