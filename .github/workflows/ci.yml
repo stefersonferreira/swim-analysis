@@ -105,10 +105,12 @@ jobs:
       - name: Teste de navegador (upload, calibração, eventos, métricas)
         run: |
           echo "=== e2e" | tee -a /tmp/ci.log
-          sh tools/make_test_video.sh /tmp/teste.mp4 12 2>&1 | tee -a /tmp/ci.log
+          # o vídeo de teste é gerado com o ffmpeg da própria imagem (o runner não tem ffmpeg)
+          docker run --rm -v "$PWD:/w" -w /w ghcr.io/stefersonferreira/swim-analysis-worker:ci \
+            sh tools/make_test_video.sh /w/teste.mp4 12 2>&1 | tee -a /tmp/ci.log
           uv run --no-project --with playwright==1.56.0 python -m playwright install --with-deps chromium > /tmp/pw-install.log 2>&1
           BASE_URL=http://localhost:8080 uv run --no-project --with playwright==1.56.0 \
-            python tests/e2e/ui_smoke.py /tmp/teste.mp4 e2e-shots 2>&1 | tee -a /tmp/ci.log
+            python tests/e2e/ui_smoke.py teste.mp4 e2e-shots 2>&1 | tee -a /tmp/ci.log
       - name: Logs em caso de falha (viram anotações do GitHub)
         if: failure()
         run: |
