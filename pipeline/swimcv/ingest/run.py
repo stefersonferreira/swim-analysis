@@ -135,10 +135,7 @@ def make_proxy(src: Path, dst: Path, has_audio: bool) -> None:
         # com o tempo arredondado (o padrão do encoder arredondaria para 1/fps).
         "-map",
         "0:v:0",
-        "-fps_mode",
-        "passthrough",
-        "-enc_time_base",
-        "demux",
+        *passthrough_args(),
         "-vf",
         vf,
         "-c:v",

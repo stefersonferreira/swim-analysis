@@ -112,6 +112,7 @@ jobs:
       - name: Logs em caso de falha (viram anotações do GitHub)
         if: failure()
         run: |
+          [ -f .env ] || cp .env.example .env
           { echo "=== docker compose ps"; docker compose ps -a; echo "=== docker compose logs"; docker compose logs --no-color --tail 80; } >> /tmp/ci.log 2>&1 || true
           python3 tools/ci_annotate.py /tmp/ci.log
       - uses: actions/upload-artifact@v4
