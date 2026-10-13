@@ -102,6 +102,13 @@ def main(video: str, out: str = "e2e-shots") -> None:
         # o clique logo depois da tecla B deu posição ao breakout
         bo_row = page.locator(".metrics tr", has_text="Breakout da largada").inner_text()
         assert "jd" in bo_row, bo_row
+        # cada clique foi para o evento certo, mesmo com teclas rápidas
+        vid = page.url.rstrip("/").split("/")[-1]
+        evs = page.request.get(f"{BASE}/api/videos/{vid}/events").json()["events"]
+        placed = sorted((e["type"], e["frame"]) for e in evs if e["image_xy"])
+        assert placed == [("breakout", 110), ("stroke", 155), ("stroke", 260)], placed
+        frames = sorted(e["frame"] for e in evs if e["type"] == "stroke")
+        assert frames == [125, 140, 155, 170, 185, 200, 215, 230, 260], frames
         page.screenshot(path=shots / "05-metricas.png", full_page=True)
 
         if errors:

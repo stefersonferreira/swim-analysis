@@ -192,17 +192,24 @@ export default function Review({ videoId }: { videoId: string }) {
   }, [n, video]);
 
   // ---- Eventos ------------------------------------------------------------------------
+  // Alterações em fila: o servidor recebe na ordem das teclas e a tela nunca volta para
+  // uma resposta mais antiga.
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
   const patch = useCallback(
-    async (body: Parameters<typeof api.patchEvents>[1]) => {
-      try {
-        const st = await api.patchEvents(videoId, body);
-        apply(st);
-        setError(null);
-        return st;
-      } catch (e) {
-        setError(String((e as Error).message));
-        return null;
-      }
+    (body: Parameters<typeof api.patchEvents>[1]) => {
+      const run = queue.current.then(async () => {
+        try {
+          const st = await api.patchEvents(videoId, body);
+          apply(st);
+          setError(null);
+          return st;
+        } catch (e) {
+          setError(String((e as Error).message));
+          return null;
+        }
+      });
+      queue.current = run;
+      return run;
     },
     [videoId, apply],
   );
@@ -213,10 +220,9 @@ export default function Review({ videoId }: { videoId: string }) {
   const createEvent = useCallback(
     async (type: EventType) => {
       pause();
-      const before = new Set(events.map((e) => e.id));
       const job = patch({
         create: [{ type, frame, mark_m: type === "mark_pass" ? markM : null }],
-      }).then((st) => st?.events.find((e) => !before.has(e.id))?.id ?? null);
+      }).then((st) => st?.created_ids[0] ?? null);
       pendingCreate.current = job;
       const id = await job;
       if (pendingCreate.current === job) pendingCreate.current = null;
@@ -225,7 +231,7 @@ export default function Review({ videoId }: { videoId: string }) {
         setCycleType(type);
       }
     },
-    [events, frame, markM, patch, pause, setSelectedId],
+    [frame, markM, patch, pause, setSelectedId],
   );
 
   const jumpType = (dir: 1 | -1) => {

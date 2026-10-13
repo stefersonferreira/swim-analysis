@@ -1,0 +1,86 @@
+{
+  "description": "Metadados do vídeo, gravados pela ingestão em video_meta.json.",
+  "properties": {
+    "schema_version": {
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "original_filename": {
+      "title": "Original Filename",
+      "type": "string"
+    },
+    "width": {
+      "title": "Width",
+      "type": "integer"
+    },
+    "height": {
+      "title": "Height",
+      "type": "integer"
+    },
+    "proxy_width": {
+      "title": "Proxy Width",
+      "type": "integer"
+    },
+    "proxy_height": {
+      "title": "Proxy Height",
+      "type": "integer"
+    },
+    "rotation": {
+      "default": 0,
+      "title": "Rotation",
+      "type": "integer"
+    },
+    "fps_nominal": {
+      "title": "Fps Nominal",
+      "type": "number"
+    },
+    "fps_measured": {
+      "title": "Fps Measured",
+      "type": "number"
+    },
+    "variable_frame_rate": {
+      "title": "Variable Frame Rate",
+      "type": "boolean"
+    },
+    "n_frames": {
+      "title": "N Frames",
+      "type": "integer"
+    },
+    "duration_s": {
+      "title": "Duration S",
+      "type": "number"
+    },
+    "has_audio": {
+      "title": "Has Audio",
+      "type": "boolean"
+    },
+    "audio_sample_rate": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Audio Sample Rate"
+    }
+  },
+  "required": [
+    "original_filename",
+    "width",
+    "height",
+    "proxy_width",
+    "proxy_height",
+    "fps_nominal",
+    "fps_measured",
+    "variable_frame_rate",
+    "n_frames",
+    "duration_s",
+    "has_audio"
+  ],
+  "title": "VideoMeta",
+  "type": "object"
+}

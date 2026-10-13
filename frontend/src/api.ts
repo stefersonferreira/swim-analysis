@@ -54,7 +54,11 @@ export const api = {
       }[];
       delete?: string[];
     },
-  ) => req<ReviewState>(`/api/videos/${id}/events`, { method: "PATCH", body: JSON.stringify(body) }),
+  ) =>
+    req<ReviewState & { created_ids: string[] }>(`/api/videos/${id}/events`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
   calibration: (id: string) => req<CalibrationState>(`/api/videos/${id}/calibration`),
   saveCalibration: (id: string, pool: PoolProfile, anchors: Anchor[]) =>
     req<CalibrationState & ReviewState>(`/api/videos/${id}/calibration`, {

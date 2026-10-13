@@ -75,6 +75,7 @@ def patch_events(video_id: str, body: EventsPatch, db: Session = Depends(get_db)
     v = get_video(video_id, db)
     require_ready(v)
     pts = _pts_lookup(video_id)
+    created: list[str] = []
     for e in body.create:
         row = Event(
             video_id=v.id,
@@ -89,6 +90,7 @@ def patch_events(video_id: str, body: EventsPatch, db: Session = Depends(get_db)
         )
         db.add(row)
         db.flush()
+        created.append(row.id)
         audit(db, v.id, "event", row.id, "create", None, event_dict(row), body.author)
     for u in body.update:
         row = db.get(Event, u.id)
@@ -114,7 +116,7 @@ def patch_events(video_id: str, body: EventsPatch, db: Session = Depends(get_db)
         row.deleted = True  # nunca apaga de verdade: o histórico vira dado de treino
         audit(db, v.id, "event", row.id, "delete", event_dict(row), None, body.author)
     db.commit()
-    return metrics_payload(db, v)
+    return {**metrics_payload(db, v), "created_ids": created}
 
 
 # ---- Calibração --------------------------------------------------------------------------

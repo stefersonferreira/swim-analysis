@@ -1,0 +1,40 @@
+{
+  "description": "Geometria da piscina. Coordenadas da piscina em metros:\nx ao longo do comprimento, a partir da parede de saída (0..length_m);\ny através das raias, a partir da corda 0 (borda de um lado) até lanes * lane_width_m.",
+  "properties": {
+    "schema_version": {
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "name": {
+      "default": "Piscina 25 m",
+      "title": "Name",
+      "type": "string"
+    },
+    "length_m": {
+      "default": 25.0,
+      "title": "Length M",
+      "type": "number"
+    },
+    "lanes": {
+      "default": 8,
+      "title": "Lanes",
+      "type": "integer"
+    },
+    "lane_width_m": {
+      "default": 2.5,
+      "title": "Lane Width M",
+      "type": "number"
+    },
+    "marks_m": {
+      "description": "Posições x (a partir da parede de saída) com marcas visíveis (bandeirolas a 5 m, troca de cor das boias a 15 m de cada parede)",
+      "items": {
+        "type": "number"
+      },
+      "title": "Marks M",
+      "type": "array"
+    }
+  },
+  "title": "PoolProfile",
+  "type": "object"
+}

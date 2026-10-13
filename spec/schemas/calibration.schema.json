@@ -1,0 +1,227 @@
+{
+  "$defs": {
+    "Anchor": {
+      "properties": {
+        "frame": {
+          "title": "Frame",
+          "type": "integer"
+        },
+        "points": {
+          "items": {
+            "$ref": "#/$defs/ClickPoint"
+          },
+          "title": "Points",
+          "type": "array"
+        }
+      },
+      "required": [
+        "frame"
+      ],
+      "title": "Anchor",
+      "type": "object"
+    },
+    "AnchorResult": {
+      "properties": {
+        "frame": {
+          "title": "Frame",
+          "type": "integer"
+        },
+        "homography": {
+          "anyOf": [
+            {
+              "items": {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "3x3, imagem (pixels do proxy) -> piscina (m)",
+          "title": "Homography"
+        },
+        "mean_error_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mean Error M"
+        },
+        "max_error_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Error M"
+        },
+        "point_errors_m": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Point Errors M",
+          "type": "array"
+        },
+        "inliers": {
+          "items": {
+            "type": "boolean"
+          },
+          "title": "Inliers",
+          "type": "array"
+        },
+        "accepted": {
+          "default": false,
+          "title": "Accepted",
+          "type": "boolean"
+        },
+        "message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Message"
+        }
+      },
+      "required": [
+        "frame"
+      ],
+      "title": "AnchorResult",
+      "type": "object"
+    },
+    "ClickPoint": {
+      "properties": {
+        "image_xy": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Image Xy",
+          "type": "array"
+        },
+        "pool_xy": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Pool Xy",
+          "type": "array"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        }
+      },
+      "required": [
+        "image_xy",
+        "pool_xy"
+      ],
+      "title": "ClickPoint",
+      "type": "object"
+    },
+    "PoolProfile": {
+      "description": "Geometria da piscina. Coordenadas da piscina em metros:\nx ao longo do comprimento, a partir da parede de saída (0..length_m);\ny através das raias, a partir da corda 0 (borda de um lado) até lanes * lane_width_m.",
+      "properties": {
+        "schema_version": {
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "name": {
+          "default": "Piscina 25 m",
+          "title": "Name",
+          "type": "string"
+        },
+        "length_m": {
+          "default": 25.0,
+          "title": "Length M",
+          "type": "number"
+        },
+        "lanes": {
+          "default": 8,
+          "title": "Lanes",
+          "type": "integer"
+        },
+        "lane_width_m": {
+          "default": 2.5,
+          "title": "Lane Width M",
+          "type": "number"
+        },
+        "marks_m": {
+          "description": "Posições x (a partir da parede de saída) com marcas visíveis (bandeirolas a 5 m, troca de cor das boias a 15 m de cada parede)",
+          "items": {
+            "type": "number"
+          },
+          "title": "Marks M",
+          "type": "array"
+        }
+      },
+      "title": "PoolProfile",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "pool": {
+      "$ref": "#/$defs/PoolProfile"
+    },
+    "anchors": {
+      "items": {
+        "$ref": "#/$defs/Anchor"
+      },
+      "title": "Anchors",
+      "type": "array"
+    },
+    "results": {
+      "items": {
+        "$ref": "#/$defs/AnchorResult"
+      },
+      "title": "Results",
+      "type": "array"
+    }
+  },
+  "title": "Calibration",
+  "type": "object"
+}

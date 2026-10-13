@@ -1,0 +1,92 @@
+# Uso:
+#   cp .env.example .env      (ajuste COMPOSE_PROFILES=gpu se tiver placa NVIDIA)
+#   docker compose up -d
+#   abra http://localhost:8080
+#
+# Perfis (variável COMPOSE_PROFILES no .env):
+#   cpu  worker em CPU, roda em qualquer máquina (padrão)
+#   gpu  worker com placa NVIDIA (Windows + WSL2: já vem no Docker Desktop)
+
+name: swim-analysis
+
+x-app: &app
+  env_file: .env
+  environment:
+    SWIM_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-swim}:${POSTGRES_PASSWORD:-swim}@db:5432/${POSTGRES_DB:-swim}
+    SWIM_REDIS_URL: redis://redis:6379/0
+    SWIM_DATA_DIR: /data
+  volumes:
+    - ./data:/data
+  restart: unless-stopped
+
+services:
+  db:
+    image: postgres:16.6-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-swim}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-swim}
+      POSTGRES_DB: ${POSTGRES_DB:-swim}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.4.1-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  web:
+    <<: *app
+    image: ${IMAGE_PREFIX:-ghcr.io/stefersonferreira/swim-analysis}-web:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: web
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  worker:
+    <<: *app
+    profiles: ["cpu"]
+    image: ${IMAGE_PREFIX:-ghcr.io/stefersonferreira/swim-analysis}-worker:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: worker
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  worker-gpu:
+    <<: *app
+    profiles: ["gpu"]
+    image: ${IMAGE_PREFIX:-ghcr.io/stefersonferreira/swim-analysis}-worker-gpu:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: worker-gpu
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+volumes:
+  pgdata:

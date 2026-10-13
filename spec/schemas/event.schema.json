@@ -1,0 +1,128 @@
+{
+  "$defs": {
+    "EventSource": {
+      "enum": [
+        "auto",
+        "manual"
+      ],
+      "title": "EventSource",
+      "type": "string"
+    },
+    "EventType": {
+      "enum": [
+        "start_signal",
+        "feet_off",
+        "entry",
+        "breakout",
+        "stroke",
+        "wall_hands",
+        "wall_feet",
+        "finish_touch",
+        "mark_pass"
+      ],
+      "title": "EventType",
+      "type": "string"
+    }
+  },
+  "description": "Um acontecimento da prova num instante do vídeo.\n\nPosição:\n- `image_xy`: ponto clicado no quadro (pixels do proxy). Convertido em `x_m` pela\n  calibração no momento do cálculo, para que recalibrar atualize tudo.\n- `x_m`: posição ao longo da piscina, medida a partir da parede de saída (0..L).\n- `mark_m`: só para MARK_PASS, distância da marca até a parede de impulsão da\n  piscina corrente (ex.: 15 = marca de 15 m).",
+  "properties": {
+    "schema_version": {
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "type": {
+      "$ref": "#/$defs/EventType"
+    },
+    "frame": {
+      "minimum": 0,
+      "title": "Frame",
+      "type": "integer"
+    },
+    "t": {
+      "description": "PTS do quadro em segundos, relativo ao primeiro quadro",
+      "title": "T",
+      "type": "number"
+    },
+    "image_xy": {
+      "anyOf": [
+        {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Image Xy"
+    },
+    "x_m": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "X M"
+    },
+    "mark_m": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Mark M"
+    },
+    "confidence": {
+      "default": 1.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Confidence",
+      "type": "number"
+    },
+    "source": {
+      "$ref": "#/$defs/EventSource",
+      "default": "manual"
+    },
+    "author": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Author"
+    }
+  },
+  "required": [
+    "type",
+    "frame",
+    "t"
+  ],
+  "title": "Event",
+  "type": "object"
+}

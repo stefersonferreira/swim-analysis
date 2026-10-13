@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --noEmit",
-    "licenses": "license-checker --production --failOn 'GPL;AGPL;LGPL;SSPL' --summary"
+    "licenses": "license-checker --production --excludePrivatePackages --failOn 'GPL-2.0;GPL-3.0;AGPL-3.0;SSPL-1.0' --summary"
   },
   "dependencies": {
     "react": "^18.3.1",

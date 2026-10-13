@@ -5,6 +5,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from swimcv.ingest.run import passthrough_args
+
 REFERENCE_VIDEO = Path(__file__).parent / "golden" / "reference_free_50yd.mp4"
 BITS = 12
 CELL = 48
@@ -58,8 +60,7 @@ def make_vfr_video(path: Path, n_frames: int = 90, audio: bool = True) -> None:
     cmd += [
         "-vf",
         "settb=1/90000,setpts='(N+0.3*sin(N))/30/TB'",
-        "-fps_mode",
-        "passthrough",
+        *passthrough_args()[:2],  # -fps_mode ou -vsync, conforme a versão do ffmpeg
         "-enc_time_base",
         "1/90000",
         "-video_track_timescale",

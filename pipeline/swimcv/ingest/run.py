@@ -15,9 +15,11 @@ ffmpeg/ffprobe são chamados como programas externos (não são ligados ao códi
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import wave
 from fractions import Fraction
+from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
@@ -98,6 +100,26 @@ def validate(info: dict, strict: bool = True) -> tuple[dict, dict | None, list[s
         raise IngestError("Vídeo recusado: " + "; ".join(problems) + ".")
     warnings += [f"Abaixo do requisito: {p}" for p in problems]
     return v, a, warnings
+
+
+@lru_cache
+def ffmpeg_version() -> tuple[int, int]:
+    out = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True).stdout
+    m = re.search(r"ffmpeg version n?(\d+)\.(\d+)", out)
+    return (int(m.group(1)), int(m.group(2))) if m else (7, 0)
+
+
+def passthrough_args() -> list[str]:
+    """Sem criar, descartar ou arredondar quadros, em qualquer ffmpeg de 4.4 a 7.x.
+
+    - taxa: -fps_mode (5.1+) ou -vsync (antigo);
+    - base de tempo do encoder igual à do original: "demux" (7+) ou -1 (até 6.x).
+      Sem isso o encoder arredonda os tempos para 1/fps e perde a taxa variável.
+    """
+    v = ffmpeg_version()
+    rate = ["-fps_mode", "passthrough"] if v >= (5, 1) else ["-vsync", "passthrough"]
+    tb = ["-enc_time_base", "demux" if v >= (7, 0) else "-1"]
+    return rate + tb
 
 
 def make_proxy(src: Path, dst: Path, has_audio: bool) -> None:

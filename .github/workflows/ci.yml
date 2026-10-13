@@ -1,0 +1,138 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Testes, lint e licenças
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16.6-alpine
+        env:
+          POSTGRES_USER: swim
+          POSTGRES_PASSWORD: swim
+          POSTGRES_DB: swim_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U swim" --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgresql+psycopg://swim:swim@localhost:5432/swim_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.32"
+      - name: ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+      - name: Dependências Python
+        run: uv sync --frozen --python 3.12
+      - name: Lint
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+      - name: Esquemas JSON atualizados
+        run: |
+          uv run python tools/export_schemas.py
+          git diff --exit-code spec/schemas
+      - name: Testes (unidade + integração com PostgreSQL)
+        run: uv run pytest -q
+      - name: Licenças Python (sem GPL/AGPL; LGPL do psycopg é permitida)
+        run: >
+          uv run pip-licenses --ignore-packages swim-analysis
+          --fail-on "GPL-2.0-only;GPL-2.0-or-later;GPL-3.0-only;GPL-3.0-or-later;AGPL-3.0-only;AGPL-3.0-or-later;GNU General Public License v2 (GPLv2);GNU General Public License v3 (GPLv3);GNU General Public License v2 or later (GPLv2+);GNU General Public License v3 or later (GPLv3+);GNU Affero General Public License v3;GNU Affero General Public License v3 or later (AGPLv3+)"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.11.0"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Front-end
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npx tsc -b
+          npm run build
+          npm run licenses
+
+  docker:
+    name: Imagens Docker e teste de ponta a ponta
+    needs: test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build (web, worker, worker-gpu)
+        run: |
+          for t in web worker worker-gpu; do
+            docker buildx build --load --target $t -f docker/Dockerfile \
+              -t ghcr.io/stefersonferreira/swim-analysis-$t:ci .
+          done
+      - name: Testes de unidade dentro das imagens de worker (ffmpeg de cada base)
+        run: |
+          for t in worker worker-gpu; do
+            docker run --rm -v "$PWD/tests:/app/tests" ghcr.io/stefersonferreira/swim-analysis-$t:ci \
+              sh -c "uv pip install --python /opt/venv -q pytest && python -m pytest -q tests/unit -p no:cacheprovider"
+          done
+      - name: Subir com docker compose (perfil CPU)
+        run: |
+          cp .env.example .env
+          sed -i 's/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=cpu/; s/^IMAGE_TAG=.*/IMAGE_TAG=ci/' .env
+          docker compose up -d --no-build --wait --wait-timeout 180
+          curl -fsS http://localhost:8080/api/health
+          curl -fsS http://localhost:8080/api/system/worker
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.32"
+      - name: Teste de navegador (upload, calibração, eventos, métricas)
+        run: |
+          sh tools/make_test_video.sh /tmp/teste.mp4 12
+          uv run --no-project --with playwright==1.56.0 python -m playwright install --with-deps chromium
+          BASE_URL=http://localhost:8080 uv run --no-project --with playwright==1.56.0 \
+            python tests/e2e/ui_smoke.py /tmp/teste.mp4 e2e-shots
+      - name: Logs em caso de falha
+        if: failure()
+        run: docker compose logs --no-color | tail -300
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: capturas-e2e
+          path: e2e-shots
+          if-no-files-found: ignore
+
+  publish:
+    name: Publicar imagens (GHCR)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: docker
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publicar web e worker (amd64 + arm64) e worker-gpu (amd64)
+        run: |
+          P=ghcr.io/stefersonferreira/swim-analysis
+          for t in web worker; do
+            docker buildx build --push --platform linux/amd64,linux/arm64 --target $t \
+              -f docker/Dockerfile -t $P-$t:latest -t $P-$t:${GITHUB_SHA::7} .
+          done
+          docker buildx build --push --platform linux/amd64 --target worker-gpu \
+            -f docker/Dockerfile -t $P-worker-gpu:latest -t $P-worker-gpu:${GITHUB_SHA::7} .

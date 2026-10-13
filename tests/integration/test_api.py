@@ -104,6 +104,7 @@ def test_events_metrics_and_calibration(client, video):
     r = client.patch(f"/api/videos/{vid}/events", json=body)
     assert r.status_code == 200, r.text
     out = r.json()
+    assert len(out["created_ids"]) == 3
     reaction = next(m for m in out["metrics"] if m["name"] == "reaction_s")
     assert reaction["value"] == pytest.approx(pts[25] - pts[3])  # tempo real (VFR), não 22/30
     bo = next(e for e in out["events"] if e["type"] == "breakout")
