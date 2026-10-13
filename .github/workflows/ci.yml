@@ -69,40 +69,51 @@ jobs:
     name: Imagens Docker e teste de ponta a ponta
     needs: test
     runs-on: ubuntu-24.04
+    defaults:
+      run:
+        # cada passo grava a saída em /tmp/ci.log; se falhar, o fim do log vira anotação
+        shell: bash -eo pipefail {0}
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
       - name: Build (web, worker, worker-gpu)
         run: |
           for t in web worker worker-gpu; do
-            docker buildx build --load --target $t -f docker/Dockerfile \
-              -t ghcr.io/stefersonferreira/swim-analysis-$t:ci .
+            echo "=== build $t" | tee -a /tmp/ci.log
+            docker buildx build --load --progress=plain --target $t -f docker/Dockerfile \
+              -t ghcr.io/stefersonferreira/swim-analysis-$t:ci . 2>&1 | tee -a /tmp/ci.log
           done
       - name: Testes de unidade dentro das imagens de worker (ffmpeg de cada base)
         run: |
           for t in worker worker-gpu; do
+            echo "=== testes em $t" | tee -a /tmp/ci.log
             docker run --rm -v "$PWD/tests:/app/tests" ghcr.io/stefersonferreira/swim-analysis-$t:ci \
-              sh -c "uv pip install --python /opt/venv -q pytest && python -m pytest -q tests/unit -p no:cacheprovider"
+              sh -c "ffmpeg -version | head -1 && uv pip install --python /opt/venv -q pytest && python -m pytest -q -rs tests/unit -p no:cacheprovider" \
+              2>&1 | tee -a /tmp/ci.log
           done
       - name: Subir com docker compose (perfil CPU)
         run: |
           cp .env.example .env
           sed -i 's/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=cpu/; s/^IMAGE_TAG=.*/IMAGE_TAG=ci/' .env
-          docker compose up -d --no-build --wait --wait-timeout 180
-          curl -fsS http://localhost:8080/api/health
-          curl -fsS http://localhost:8080/api/system/worker
+          echo "=== compose up" | tee -a /tmp/ci.log
+          docker compose up -d --no-build --wait --wait-timeout 240 2>&1 | tee -a /tmp/ci.log
+          curl -fsS http://localhost:8080/api/health 2>&1 | tee -a /tmp/ci.log
+          curl -fsS http://localhost:8080/api/system/worker 2>&1 | tee -a /tmp/ci.log
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.11.32"
       - name: Teste de navegador (upload, calibração, eventos, métricas)
         run: |
-          sh tools/make_test_video.sh /tmp/teste.mp4 12
-          uv run --no-project --with playwright==1.56.0 python -m playwright install --with-deps chromium
+          echo "=== e2e" | tee -a /tmp/ci.log
+          sh tools/make_test_video.sh /tmp/teste.mp4 12 2>&1 | tee -a /tmp/ci.log
+          uv run --no-project --with playwright==1.56.0 python -m playwright install --with-deps chromium > /tmp/pw-install.log 2>&1
           BASE_URL=http://localhost:8080 uv run --no-project --with playwright==1.56.0 \
-            python tests/e2e/ui_smoke.py /tmp/teste.mp4 e2e-shots
-      - name: Logs em caso de falha
+            python tests/e2e/ui_smoke.py /tmp/teste.mp4 e2e-shots 2>&1 | tee -a /tmp/ci.log
+      - name: Logs em caso de falha (viram anotações do GitHub)
         if: failure()
-        run: docker compose logs --no-color | tail -300
+        run: |
+          { echo "=== docker compose ps"; docker compose ps -a; echo "=== docker compose logs"; docker compose logs --no-color --tail 80; } >> /tmp/ci.log 2>&1 || true
+          python3 tools/ci_annotate.py /tmp/ci.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
