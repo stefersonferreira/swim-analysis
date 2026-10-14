@@ -61,6 +61,7 @@ pipeline/swimcv/tracking/     rastreamento do nadador na raia (faixa retificada 
 pipeline/swimcv/events/       largada pelo áudio e eventos automáticos
 pipeline/swimcv/analyze.py    orquestra a análise automática (usada pelo worker)
 pipeline/swimcv/overlay/      linha do tempo da sobreposição (state_at) e MP4 (render.py)
+pipeline/swimcv/report/       relatório da análise (HTML imprimível) a partir da linha do tempo
 frontend/src/overlay/         sobreposição ao vivo; state.ts espelha state_at (teste de paridade)
 brand/                        identidade Fluxi Swim: cores e fontes (OFL)
 backend/app/                  FastAPI, banco (SQLAlchemy + Alembic), worker Celery

@@ -21,6 +21,13 @@ Várias raias no mesmo vídeo (treino com saídas lado a lado).
 - Várias raias ao vivo: balão de saída e de chegada de cada raia (quem chega depois mostra a
   diferença), coluna "Saída" no quadro, relógio para na última chegada; comparativo final com
   coluna "Dif.".
+- Largada: apito de treino com trinado (o tom desliza entre ~2,5 e 4 kHz) passa a ser
+  reconhecido, com o início medido na faixa toda.
+- "Ajustes do vídeo final e relatório" na revisão: ciclos marcados só num trecho e observações
+  do resumo (`PUT /api/videos/{id}/final-options`, migração 0005).
+- Relatório da análise (`/api/videos/{id}/report.html`, botão "Abrir relatório"): resultados,
+  pontos para o técnico calculados dos números (de onde vem a diferença), momentos marcados e
+  observações; "Salvar em PDF" pelo navegador. Mesmos números do vídeo.
 - Correção: "Gerar vídeo" travava quando o desenho de um quadro falhava (o ffmpeg ficava
   esperando quadros); agora o erro aparece. O fim com resumo não exige mais a chegada do
   atleta da prova.

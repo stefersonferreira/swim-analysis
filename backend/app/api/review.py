@@ -6,6 +6,7 @@ from bisect import bisect_left
 
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -19,6 +20,7 @@ from app.services import (
     event_dict,
     metrics_payload,
     overlay_timeline,
+    report_html,
     save_calibration,
 )
 from swimcv import contracts as c
@@ -187,6 +189,14 @@ def overlay(video_id: str, db: Session = Depends(get_db)) -> dict:
     v = get_video(video_id, db)
     require_ready(v)
     return overlay_timeline(db, v)
+
+
+@router.get("/videos/{video_id}/report.html", response_class=HTMLResponse)
+def report(video_id: str, db: Session = Depends(get_db)) -> HTMLResponse:
+    """Relatório da análise, pronto para imprimir ou salvar em PDF."""
+    v = get_video(video_id, db)
+    require_ready(v)
+    return HTMLResponse(report_html(db, v))
 
 
 @router.get("/videos/{video_id}/grid/{frame}")

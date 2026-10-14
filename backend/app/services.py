@@ -153,6 +153,8 @@ def overlay_timeline(db: Session, video: Video) -> dict:
         height=meta.get("proxy_height", 1080),
         duration_s=meta.get("duration_s", 0.0),
         trajectory=traj,
+        notes=video.review_notes or [],
+        strokes_partial=bool(video.strokes_partial),
     )
 
 
@@ -219,3 +221,12 @@ def save_calibration(db: Session, video: Video, cal: c.Calibration) -> c.Calibra
     video.calibration = solved.model_dump(mode="json")
     audit(db, video.id, "calibration", None, "update", before, video.calibration)
     return solved
+
+
+def report_html(db: Session, video: Video) -> str:
+    """Relatório imprimível: mesmos números do vídeo (parte da mesma linha do tempo)."""
+    from swimcv.report import build_report, render_html
+
+    tl = overlay_timeline(db, video)
+    events = [to_contract(e) for e in live_events(db, video.id)]
+    return render_html(build_report(tl, events))

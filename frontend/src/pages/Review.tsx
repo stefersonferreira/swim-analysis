@@ -586,6 +586,8 @@ export default function Review({ videoId }: { videoId: string }) {
         </div>
       </div>
 
+      <FinalOptions video={video} onSaved={onVideo} onError={(m) => setError(m)} />
+
       {editRace && (
         <div className="card">
           <RaceFields
@@ -876,5 +878,66 @@ export default function Review({ videoId }: { videoId: string }) {
         </aside>
       </div>
     </div>
+  );
+}
+
+/** Ajustes do vídeo final: o que foi medido só em parte e as observações do resumo. */
+function FinalOptions(props: { video: Video; onSaved: (v: Video) => void; onError: (m: string) => void }) {
+  const { video } = props;
+  const [partial, setPartial] = useState(video.strokes_partial);
+  const [notes, setNotes] = useState((video.review_notes ?? []).join("\n"));
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    setPartial(video.strokes_partial);
+    setNotes((video.review_notes ?? []).join("\n"));
+  }, [video.id, video.strokes_partial, video.review_notes]);
+  const lines = notes.split("\n").map((l) => l.trim()).filter(Boolean);
+  const dirty =
+    partial !== video.strokes_partial || lines.join("\n") !== (video.review_notes ?? []).join("\n");
+  const save = async () => {
+    setSaving(true);
+    try {
+      props.onSaved(await api.updateFinalOptions(video.id, { strokes_partial: partial, notes: lines.slice(0, 6) }));
+    } catch (e) {
+      props.onError(String((e as Error).message));
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <details className="card final-options" data-testid="final-options">
+      <summary>
+        Ajustes do vídeo final e relatório
+        {(video.strokes_partial || (video.review_notes ?? []).length > 0) && (
+          <span className="muted small"> · {video.strokes_partial ? "ciclos só num trecho" : ""}
+            {video.strokes_partial && (video.review_notes ?? []).length ? " · " : ""}
+            {(video.review_notes ?? []).length ? `${video.review_notes.length} observação(ões)` : ""}
+          </span>
+        )}
+      </summary>
+      <label className="inline small">
+        <input type="checkbox" checked={partial} onChange={(e) => setPartial(e.target.checked)} />
+        Ciclos marcados só num trecho do vídeo (o ritmo vale; a contagem aparece como “–”)
+      </label>
+      <label className="small block">
+        Observações no resumo (uma por linha, até 6):
+        <textarea
+          rows={3}
+          value={notes}
+          maxLength={800}
+          placeholder="Ex.: Ritmo medido de 11 a 19 s, com os nadadores perto da câmera"
+          onChange={(e) => setNotes(e.target.value)}
+        />
+      </label>
+      <div className="row-actions">
+        <button className="btn small primary" disabled={!dirty || saving} onClick={save}>
+          {saving ? "Salvando…" : "Salvar"}
+        </button>
+        <a className="btn small" href={`/api/videos/${video.id}/report.html`} target="_blank" rel="noreferrer">
+          Abrir relatório
+        </a>
+        <span className="muted small">Depois de salvar, gere o vídeo de novo para o MP4 mudar.</span>
+      </div>
+    </details>
   );
 }

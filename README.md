@@ -76,6 +76,11 @@ Vídeos e resultados ficam em `./data`; o banco, no volume `pgdata`.
    1–8 para dizer de que raia são as entradas, braçadas e chegadas. A sobreposição troca o
    painel do atleta por um quadro com braçadas, ritmo e tempo de cada raia e, no fim, mostra
    o comparativo: saída, braçadas, ritmo, tempo e velocidade média.
+7. **Ajustes do vídeo final e relatório:** se os ciclos foram marcados só num trecho (o nadador
+   sai de quadro), marque a opção e a contagem aparece como "–" (o ritmo continua valendo).
+   Escreva observações, uma por linha, que entram no resumo do vídeo e no relatório. "Abrir
+   relatório" mostra resultados, pontos para o técnico e momentos marcados; "Salvar em PDF"
+   gera o arquivo. Depois de mudar, gere o vídeo de novo.
 
 | Tecla | Ação |
 | --- | --- |

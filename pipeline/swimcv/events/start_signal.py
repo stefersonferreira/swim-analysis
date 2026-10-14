@@ -6,7 +6,8 @@ apito longo ("subam") e depois um apito curto. Nos dois casos a largada é o úl
 da sequência (order_candidates). A pontuação de cada candidato combina:
 
 - subida brusca de energia na faixa 500–4.000 Hz;
-- tonalidade (espectro concentrado num pico estável, não ruído de torcida);
+- tonalidade (espectro concentrado num pico que varia de forma contínua, não ruído de torcida;
+  o apito de treino "trina" e desliza entre ~2,5 e 4 kHz, o bipe fica parado);
 - silêncio relativo no segundo anterior;
 - duração plausível (80 ms a 1,5 s).
 
@@ -27,6 +28,8 @@ BAND_HZ = (500.0, 4000.0)
 SEARCH_S = 25.0
 STRONG_FRACTION = 0.6
 SEQUENCE_GAP_S = 6.0
+GAP_FILL_S = 0.04  # buracos curtos dentro de um mesmo apito (trinado)
+MAX_GLIDE_HZ = 150.0  # variação típica do pico entre janelas vizinhas (5 ms)
 
 
 @dataclass
@@ -66,7 +69,7 @@ def _runs(mask: np.ndarray) -> list[tuple[int, int]]:
     return list(zip(np.flatnonzero(d == 1), np.flatnonzero(d == -1), strict=True))
 
 
-def refine_onset(x: np.ndarray, rate: int, t0: float, freq: float) -> float:
+def refine_onset(x: np.ndarray, rate: int, t0: float, freq: float, half_bw: float = 150.0) -> float:
     """Início exato do tom: envelope do sinal filtrado em torno da frequência do tom,
     primeiro instante acima de metade do pico (precisão de ~1 ms)."""
     a = max(0, int((t0 - 0.12) * rate))
@@ -76,8 +79,9 @@ def refine_onset(x: np.ndarray, rate: int, t0: float, freq: float) -> float:
         return max(0.0, t0)
     spec = np.fft.fft(seg)
     f = np.fft.fftfreq(len(seg), 1.0 / rate)
-    # analítico (só frequências positivas) e passa-faixa de ±150 Hz em torno do tom
-    keep = (f > 0) & (np.abs(f - freq) < 150.0)
+    # analítico (só frequências positivas) e passa-faixa em torno do tom (±150 Hz num bipe;
+    # a faixa toda num apito que desliza)
+    keep = (f > 0) & (np.abs(f - freq) < half_bw)
     env = np.abs(np.fft.ifft(np.where(keep, 2 * spec, 0)))
     k = max(1, int(0.002 * rate))
     env = np.convolve(env, np.ones(k) / k, mode="same")
@@ -113,7 +117,16 @@ def find_start_candidates(x: np.ndarray, rate: int, top: int = 3) -> list[StartC
         ]
     )
     rise = band_db - floor_db
-    active = (rise > 12.0) & (tonal > 0.35)
+    # tonalidade suavizada (~25 ms): o trinado do apito derruba quadros isolados
+    k = max(1, int(0.025 / dt))
+    tonal_s = np.convolve(tonal, np.ones(k) / k, mode="same")
+    active = (rise > 12.0) & (tonal_s > 0.3)
+    # junta trechos separados por buracos curtos
+    gap = max(1, int(GAP_FILL_S / dt))
+    runs = _runs(active)
+    for (_, b0), (a1, _) in zip(runs, runs[1:], strict=False):
+        if a1 - b0 <= gap:
+            active[b0:a1] = True
 
     cands: list[StartCandidate] = []
     for a, b in _runs(active):
@@ -121,12 +134,13 @@ def find_start_candidates(x: np.ndarray, rate: int, top: int = 3) -> list[StartC
         if dur < 0.08 or dur > 1.5:
             continue
         f = float(np.median(peak_hz[a:b]))
-        f_stab = float(np.std(peak_hz[a:b]))
-        if f_stab > 120.0:  # tom com frequência instável = não é bipe/buzina
+        # o pico pode deslizar (apito), mas aos saltos é ruído (torcida, água)
+        glide = float(np.median(np.abs(np.diff(peak_hz[a:b])))) if b - a > 1 else 0.0
+        if glide > MAX_GLIDE_HZ:
             continue
         quiet = float(np.median(rise[max(0, a - w) : a])) if a > 0 else 0.0
         r = float(np.percentile(rise[a:b], 80))
-        score = r * float(np.mean(tonal[a:b])) - 0.5 * max(quiet, 0.0)
+        score = r * float(np.mean(tonal_s[a:b])) - 0.5 * max(quiet, 0.0)
         # tons longos (> 0,6 s) costumam ser o apito de "subam no bloco", não a largada
         if dur > 0.6:
             score *= 0.6
@@ -135,7 +149,12 @@ def find_start_candidates(x: np.ndarray, rate: int, top: int = 3) -> list[StartC
         while onset > 0 and rise[onset - 1] > r / 2:
             onset -= 1
         coarse = onset * dt + (WIN / 2) / rate  # centro da janela STFT
-        t = refine_onset(x, rate, coarse, f)
+        spread = float(np.percentile(peak_hz[a:b], 90) - np.percentile(peak_hz[a:b], 10))
+        if spread > 300.0:  # apito: o tom desliza, mede o início na faixa inteira
+            lo, hi = BAND_HZ
+            t = refine_onset(x, rate, coarse, (lo + hi) / 2, (hi - lo) / 2)
+        else:
+            t = refine_onset(x, rate, coarse, f)
         cands.append(StartCandidate(t=t, score=score, duration_s=dur, freq_hz=f, rise_db=r))
     return order_candidates(cands)[:top]
 

@@ -8,7 +8,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
 from fastapi.responses import FileResponse
-from pydantic import ValidationError
+from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -56,6 +56,8 @@ def video_dict(v: Video) -> dict:
         "pool_id": v.pool_id,
         "analysis_status": v.analysis_status or "idle",
         "analysis_notes": v.analysis_notes or [],
+        "strokes_partial": bool(v.strokes_partial),
+        "review_notes": v.review_notes or [],
         "analyzed_at": v.analyzed_at.isoformat() if v.analyzed_at else None,
         "export_status": v.export_status or "idle",
         "export_progress": v.export_progress,
@@ -152,6 +154,25 @@ def update_race(video_id: str, race: RaceInfo, db: Session = Depends(get_db)) ->
     db.commit()
     if (before or {}).get("lane") != race.lane or (before or {}).get("stroke") != race.stroke:
         enqueue_analysis(db, v)
+    return video_dict(v)
+
+
+class FinalOptions(BaseModel):
+    """Como o vídeo final apresenta o que foi medido."""
+
+    strokes_partial: bool = False
+    notes: list[str] = Field(default_factory=list, max_length=6)
+
+
+@router.put("/{video_id}/final-options")
+def update_final_options(video_id: str, opts: FinalOptions, db: Session = Depends(get_db)) -> dict:
+    v = get_video(video_id, db)
+    notes = [n.strip()[:120] for n in opts.notes if n.strip()]
+    before = {"strokes_partial": bool(v.strokes_partial), "notes": v.review_notes or []}
+    v.strokes_partial, v.review_notes = opts.strokes_partial, notes
+    after = {"strokes_partial": v.strokes_partial, "notes": notes}
+    audit(db, v.id, "video", v.id, "final_options", before, after)
+    db.commit()
     return video_dict(v)
 
 

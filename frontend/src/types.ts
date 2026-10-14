@@ -52,6 +52,10 @@ export interface Video {
   export_progress: number | null;
   export_error: string | null;
   exported_at: string | null;
+  /** vídeo final: ciclos marcados só num trecho (contagem aparece como "–") */
+  strokes_partial: boolean;
+  /** observações de quem revisou, mostradas no resumo do vídeo e no relatório */
+  review_notes: string[];
   created_at: string | null;
 }
 

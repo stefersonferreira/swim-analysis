@@ -144,3 +144,32 @@ def test_race_update(client, video):
     assert any(m["name"] == "wall_time_s" for m in out["metrics"])
     bad = {"stroke": "freestyle", "distance": 50, "pool_length": 23}
     assert client.put(f"/api/videos/{vid}/race", json=bad).status_code == 422
+
+
+def test_lanes_final_options_and_report(client, video):
+    vid = video["id"]
+    pts = client.get(f"/api/videos/{vid}/frames.json").json()["pts"]
+    fr = [1, 5, 10, 20, len(pts) - 3, len(pts) - 2]
+    create = [
+        {"type": "start_signal", "frame": fr[0]},
+        {"type": "feet_off", "frame": fr[1], "lane": 1},
+        {"type": "feet_off", "frame": fr[2], "lane": 2},
+        {"type": "finish_touch", "frame": fr[4], "lane": 2},
+        {"type": "finish_touch", "frame": fr[5], "lane": 1},
+    ]
+    r = client.patch(f"/api/videos/{vid}/events", json={"create": create})
+    assert r.status_code == 200, r.text
+    r = client.put(
+        f"/api/videos/{vid}/final-options",
+        json={"strokes_partial": True, "notes": ["  Toque com margem de 0,2 s ", ""]},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["strokes_partial"] is True
+    assert r.json()["review_notes"] == ["Toque com margem de 0,2 s"]
+    tl = client.get(f"/api/videos/{vid}/overlay.json").json()
+    assert tl["strokes_partial"] and tl["notes"] == ["Toque com margem de 0,2 s"]
+    assert [lr["lane"] for lr in tl["lanes"]] == [1, 2]
+    page = client.get(f"/api/videos/{vid}/report.html")
+    assert page.status_code == 200 and page.headers["content-type"].startswith("text/html")
+    assert "Raia 2" in page.text and "Toque com margem de 0,2 s" in page.text
+    assert "1º" in page.text

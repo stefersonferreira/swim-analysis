@@ -167,3 +167,11 @@ table.points tr.bad td { color: var(--bad); }
 .fx-word { background: linear-gradient(90deg, #6ee7b7, #7cc4fa); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .export-progress { height: 6px; margin-top: 6px; border-radius: 3px; background: var(--panel-2); overflow: hidden; max-width: 420px; }
 .export-progress div { height: 100%; background: linear-gradient(90deg, #6ee7b7, #7cc4fa); transition: width 0.4s; }
+
+.final-options summary { cursor: pointer; font-weight: 700; }
+.final-options[open] summary { margin-bottom: 10px; }
+.final-options label.block { display: block; margin: 8px 0; }
+.final-options textarea {
+  display: block; width: 100%; margin-top: 4px; font: inherit; color: inherit;
+  background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(159, 176, 204, 0.3); border-radius: 8px; padding: 8px;
+}

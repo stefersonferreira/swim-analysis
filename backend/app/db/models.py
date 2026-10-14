@@ -48,6 +48,9 @@ class Video(Base):
     export_progress: Mapped[float | None] = mapped_column(Float)
     export_error: Mapped[str | None] = mapped_column(Text)
     exported_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # vídeo final: ciclos marcados só num trecho (contagem vira "–") e observações do resumo
+    strokes_partial: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    review_notes: Mapped[list | None] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, onupdate=_now

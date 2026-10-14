@@ -82,6 +82,8 @@ export const api = {
     }),
   worker: () => req<Record<string, unknown>>("/api/system/worker"),
   analyze: (id: string) => req<Video>(`/api/videos/${id}/analyze`, { method: "POST" }),
+  updateFinalOptions: (id: string, opts: { strokes_partial: boolean; notes: string[] }) =>
+    req<Video>(`/api/videos/${id}/final-options`, { method: "PUT", body: JSON.stringify(opts) }),
   exportVideo: (id: string) => req<Video>(`/api/videos/${id}/export`, { method: "POST" }),
   trajectory: (id: string) =>
     req<{ frames: TrajectoryData | [] }>(`/api/videos/${id}/trajectory.json`),

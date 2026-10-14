@@ -76,3 +76,21 @@ def test_training_whistle_start_is_the_last_strong_signal():
     cands = find_start_candidates(x, RATE)
     assert cands[0].t == pytest.approx(6.3, abs=0.012)
     assert 0.35 < confidence(cands) <= 0.8  # escolha pela ordem: pede conferência
+
+
+def test_trilled_whistle_right_at_the_start_of_the_video():
+    """Treino gravado já com os nadadores no bloco: apito trinado (o tom desliza entre
+    2,4 e 3,9 kHz) 1 s depois do início. Antes era descartado por "frequência instável"."""
+    rng = np.random.default_rng(3)
+    x = (np.convolve(rng.normal(0, 1, 6 * RATE), np.ones(30) / 30, "same") * 0.02).astype(
+        np.float32
+    )
+    dur = 0.3
+    t = np.arange(int(dur * RATE)) / RATE
+    f = 3150 + 750 * np.sin(2 * np.pi * 9 * t)  # trinado de 9 Hz
+    w = 0.5 * np.sin(2 * np.pi * np.cumsum(f) / RATE)
+    s = int(1.05 * RATE)
+    x[s : s + len(w)] += w.astype(np.float32)
+    cands = find_start_candidates(x, RATE)
+    assert cands and cands[0].t == pytest.approx(1.05, abs=0.015)
+    assert confidence(cands) > 0.8
