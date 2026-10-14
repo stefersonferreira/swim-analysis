@@ -366,4 +366,13 @@ def compute_metrics(race: RaceInfo, events: list[Event]) -> MetricsReport:
 
     if start is None:
         b.alert("missing_start", "Sinal de largada não marcado: reação e tempos não medidos")
+    starts = [e for e in evs if e.type == EventType.START_SIGNAL]
+    if len(starts) > 1:
+        b.alert(
+            "duplicate_start",
+            f"{len(starts)} sinais de largada: vale o primeiro; apague os demais",
+            t_from=starts[1].t,
+            t_to=starts[1].t,
+            event_ids=[e.id for e in starts],
+        )
     return b.report

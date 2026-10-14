@@ -181,3 +181,11 @@ def test_race_validation():
         == 25.0
     )
     assert RaceInfo(stroke=Stroke.FREESTYLE, distance=100, pool_length=25).n_lengths == 4
+
+
+def test_duplicate_start_alert():
+    race, evs = reference_free_50m()
+    evs.append(ev(E.START_SIGNAL, 1.5))
+    r = compute_metrics(race, evs)
+    assert any(a.kind == "duplicate_start" for a in r.alerts)
+    assert r.value("reaction_s") == pytest.approx(0.67)  # vale o primeiro

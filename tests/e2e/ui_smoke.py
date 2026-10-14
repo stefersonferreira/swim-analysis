@@ -71,11 +71,22 @@ def main(video: str, out: str = "e2e-shots") -> None:
         page.get_by_role("button", name="Revisão").click()
         page.locator("body").click(position={"x": 5, "y": 5})
         kb = page.keyboard
-        kb.press("I")  # sinal de largada no quadro 0
+        vid = page.url.rstrip("/").split("/")[-1]
+        evs = page.request.get(f"{BASE}/api/videos/{vid}/events").json()["events"]
+        auto_start = [e for e in evs if e["type"] == "start_signal" and e["source"] == "auto"]
+        if auto_start:
+            # a largada já veio do áudio: usa ela (o quadro dela tem de ser múltiplo de 10)
+            f0 = auto_start[0]["frame"]
+            assert f0 % 10 == 0 and f0 <= 90, f0
+            for _ in range(f0 // 10):
+                kb.press("Shift+ArrowRight")
+        else:
+            kb.press("I")  # sinal de largada no quadro 0
+            f0 = 0
         for _ in range(2):
             kb.press("Shift+ArrowRight")
-        kb.press("O")  # pés fora no quadro 20
-        for _ in range(9):
+        kb.press("O")  # pés fora 20 quadros depois da largada
+        for _ in range(9 - f0 // 10):
             kb.press("Shift+ArrowRight")
         kb.press("B")  # breakout no quadro 110 + posição com clique
         page.mouse.click(box["x"] + 0.45 * box["width"], box["y"] + 0.6 * box["height"])
@@ -103,7 +114,6 @@ def main(video: str, out: str = "e2e-shots") -> None:
         bo_row = page.locator(".metrics tr", has_text="Breakout da largada").inner_text()
         assert bo_row.strip().endswith(" m"), bo_row
         # cada clique foi para o evento certo, mesmo com teclas rápidas
-        vid = page.url.rstrip("/").split("/")[-1]
         evs = page.request.get(f"{BASE}/api/videos/{vid}/events").json()["events"]
         placed = sorted((e["type"], e["frame"]) for e in evs if e["image_xy"])
         assert placed == [("breakout", 110), ("stroke", 155), ("stroke", 260)], placed
