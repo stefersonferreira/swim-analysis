@@ -168,20 +168,42 @@ function LaneChip({ lane }: { lane: number }) {
   return <span className="fx-lane-chip">{lane}</span>;
 }
 
-/** Ao vivo: braçadas e ritmo de cada raia; o tempo aparece quando ela chega. */
+/** Ao vivo: saída, ciclos e ritmo de cada raia; o tempo aparece quando ela chega. */
 function LanesBoard({ tl, s }: { tl: OverlayTimeline; s: OverlayState }) {
   const info = new Map((tl.lanes ?? []).map((lr) => [lr.lane, lr]));
+  const showCount = !tl.strokes_partial;
   return (
-    <div className="fx-card fx-lanes" data-testid="fx-lanes">
+    <div
+      className="fx-card fx-lanes"
+      data-testid="fx-lanes"
+      style={{ gridTemplateColumns: `repeat(${showCount ? 5 : 4}, auto)` }}
+    >
       <span className="fx-lanes-head">Raia</span>
-      <span className="fx-lanes-head">{tl.stroke_word}</span>
+      <span className="fx-lanes-head">Saída</span>
+      {showCount && <span className="fx-lanes-head">{tl.stroke_word}</span>}
       <span className="fx-lanes-head">Ritmo</span>
       <span className="fx-lanes-head">Tempo</span>
       {s.lanes.map((r) => {
-        const ft = info.get(r.lane)?.final_time ?? null;
+        const lr = info.get(r.lane);
+        const ft = lr?.final_time ?? null;
+        const sd = r.started ? (lr?.start_delay ?? null) : null;
         return [
           <LaneChip key={`c${r.lane}`} lane={r.lane} />,
-          <b key={`s${r.lane}`} data-testid="fx-lane-strokes">{r.strokes}</b>,
+          <b key={`d${r.lane}`} className={sd != null ? "" : "muted"}>
+            {sd != null ? (
+              <>
+                {br(sd)}
+                <small>s</small>
+              </>
+            ) : (
+              "–"
+            )}
+          </b>,
+          showCount ? (
+            <b key={`s${r.lane}`} data-testid="fx-lane-strokes">
+              {r.strokes}
+            </b>
+          ) : null,
           <b key={`r${r.lane}`} className={r.tempo ? "" : "muted"}>
             {r.tempo ? (
               <>
@@ -214,14 +236,16 @@ function LanesSummary({ tl, lanes }: { tl: OverlayTimeline; lanes: OverlayLane[]
     [tl.stroke_word, (l) => (l.n_strokes ? String(l.n_strokes) : "–")],
     ["Ritmo", (l) => (l.rate ? `${l.rate.toFixed(0)}/min` : "–")],
     ["Tempo", (l) => (l.final_time ? clockText(l.final_time) : "–")],
+    ["Dif.", (l) => (l.behind == null ? "–" : l.behind === 0 ? "1º" : `+${br(l.behind)} s`)],
     ["Velocidade", (l) => (l.speed ? `${br(l.speed)} m/s` : "–")],
   ];
+  if (tl.strokes_partial) cols.splice(1, 1);
   return (
     <div className="fx-summary" data-testid="fx-summary">
       <div className="fx-wordmark">Fluxi Swim</div>
       <div className="fx-summary-title">{tl.title || tl.race_label}</div>
       <div className="fx-summary-sub">{[tl.race_label, tl.pool_label].filter(Boolean).join(" · ")}</div>
-      <div className="fx-lanes-table">
+      <div className="fx-lanes-table" style={{ gridTemplateColumns: `auto repeat(${cols.length}, auto)` }}>
         <span className="fx-lanes-head">Raia</span>
         {cols.map(([name]) => (
           <span key={name} className="fx-lanes-head">

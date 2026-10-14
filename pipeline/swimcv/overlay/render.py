@@ -499,13 +499,21 @@ class Painter:
 
     # ---- várias raias ------------------------------------------------------------------
     def _lanes_board(self, img, s: dict, y0: int) -> None:
-        """Quadro ao vivo: braçadas e ritmo de cada raia; tempo quando ela chega."""
+        """Quadro ao vivo: saída, ciclos, ritmo de cada raia; tempo quando ela chega."""
         tl = self.tl
         fh = self.f("nunito", 0.85, 800)
         fv = self.f("fredoka", 1.7, 600)
         fu = self.f("nunito", 0.85, 700)
         fc = self.f("nunito", 1.0, 900)
-        pw, pad = self.px(20), self.px(1.2)
+        info = {lr["lane"]: lr for lr in tl["lanes"]}
+        # (cabeçalho, largura, valor(linha) -> (texto, unidade, destaque))
+        cols = [("Saída", 6.2, _lane_start)]
+        if not tl.get("strokes_partial"):
+            cols.append((tl["stroke_word"], 5.6, lambda r: (str(r["strokes"]), "", False)))
+        cols += [("Ritmo", 6.6, _lane_rate), ("Tempo", 6.0, _lane_time)]
+        pad = self.px(1.2)
+        lane_w = self.px(3.0)
+        pw = int(2 * pad + lane_w + sum(self.px(w) for _, w, _ in cols))
         head_h, row_h = self.px(2.0), self.px(2.7)
         rows = s["lanes"]
         ph = pad + head_h + len(rows) * row_h + self.px(0.6)
@@ -513,37 +521,33 @@ class Painter:
         self.put_card(img, px0, y0, pw, ph, border=(110, 231, 183, 90), glow=MINT, glow_a=0.22)
         d = ImageDraw.Draw(img)
         x_lane = px0 + pad
-        x_str = px0 + self.px(9.0)
-        x_rate = px0 + self.px(14.2)
-        x_time = px0 + pw - pad
+        rights, x = [], x_lane + lane_w
+        for _, w, _ in cols:
+            x += self.px(w)
+            rights.append(x)
         hy = y0 + pad + self.px(0.9)
         self.text(d, (x_lane, hy), "Raia", fh, MINT)
-        self.text(d, (x_str, hy), "Braçadas", fh, MINT, anchor="rs")
-        self.text(d, (x_rate, hy), "Ritmo", fh, MINT, anchor="rs")
-        self.text(d, (x_time, hy), "Tempo", fh, MINT, anchor="rs")
-        info = {lr["lane"]: lr for lr in tl["lanes"]}
+        for (name, _, _), rx in zip(cols, rights, strict=True):
+            self.text(d, (rx, hy), name, fh, MINT, anchor="rs")
         for i, r in enumerate(rows):
+            r = {**r, "_info": info[r["lane"]]}
             cy = y0 + pad + head_h + i * row_h + row_h / 2
             rr = self.px(0.95)
             d.ellipse((x_lane, cy - rr, x_lane + 2 * rr, cy + rr), fill=AMBER)
             d.text((x_lane + rr, cy), str(r["lane"]), font=fc, fill=NAVY, anchor="mm")
             base = cy + self.px(0.65)
-            self.text(d, (x_str, base), str(r["strokes"]), fv, TEXT, anchor="rs")
-            if r["tempo"]:
-                rate = f"{60 / r['tempo']:.0f}"
-                uw = _text_w("/min", fu)
-                self.text(d, (x_rate - uw - self.px(0.15), base), rate, fv, TEXT, anchor="rs")
-                self.text(d, (x_rate, base), "/min", fu, MUTED, anchor="rs")
-            else:
-                self.text(d, (x_rate, base), "–", fv, MUTED, anchor="rs")
-            ft = info[r["lane"]]["final_time"]
-            if r["finished"] and ft is not None:
-                self.text(d, (x_time, base), clock_text(ft), fv, MINT, anchor="rs")
-            else:
-                self.text(d, (x_time, base), "–", fv, MUTED, anchor="rs")
+            for (_, _, fn), rx in zip(cols, rights, strict=True):
+                val, unit, hi = fn(r)
+                if val == "–":
+                    self.text(d, (rx, base), "–", fv, MUTED, anchor="rs")
+                    continue
+                uw = _text_w(unit, fu) + self.px(0.15) if unit else 0
+                if unit:
+                    self.text(d, (rx, base), unit, fu, MUTED, anchor="rs")
+                self.text(d, (rx - uw, base), val, fv, MINT if hi else TEXT, anchor="rs")
             if i < len(rows) - 1:
                 ly = cy + row_h / 2
-                d.line((x_lane, ly, x_time, ly), fill=(159, 176, 204, 46), width=1)
+                d.line((x_lane, ly, rights[-1], ly), fill=(159, 176, 204, 46), width=1)
 
     def _lanes_summary(self, img) -> None:
         """Quadro final: uma linha por raia, lado a lado."""
@@ -569,8 +573,11 @@ class Painter:
                 (tl["stroke_word"], lambda lr: str(lr["n_strokes"]) if lr["n_strokes"] else "–"),
                 ("Ritmo", lambda lr: f"{lr['rate']:.0f}/min" if lr["rate"] else "–"),
                 ("Tempo", lambda lr: clock_text(lr["final_time"]) if lr["final_time"] else "–"),
+                ("Dif.", lambda lr: _behind_text(lr.get("behind"))),
                 ("Velocidade", lambda lr: f"{br(lr['speed'])} m/s" if lr["speed"] else "–"),
             ]
+            if tl.get("strokes_partial"):
+                cols.pop(1)
             notes = []
             if "entry" in kinds:
                 notes.append("Saída: do apito até entrar na água")
@@ -580,7 +587,7 @@ class Painter:
                 notes.append("– : chegada fora do vídeo")
             notes.append("Ritmo: ciclos de braço por minuto")
             notes += tl.get("notes", [])
-            col_w = [self.px(6.2), self.px(6.2), self.px(6.6), self.px(6.4), self.px(7.6)]
+            col_w = [self.px(6.4)] * (len(cols) - 1) + [self.px(7.6)]
             lane_w = self.px(4.0)
             pad = self.px(2.2)
             w = max(pad * 2 + lane_w + sum(col_w), self.px(34))
@@ -734,6 +741,28 @@ class Painter:
             self._cache[key] = (sp, w, h, m)
         sp, w, h, m = self._cache[key]
         _composite_clipped(img, sp, int((self.W - w) / 2 - m), int((self.H - h) / 2 - m))
+
+
+def _lane_start(r: dict):
+    lr = r["_info"]
+    if r.get("started") and lr["start_delay"] is not None:
+        return br(lr["start_delay"]), "s", False
+    return "–", "", False
+
+
+def _lane_rate(r: dict):
+    return (f"{60 / r['tempo']:.0f}", "/min", False) if r["tempo"] else ("–", "", False)
+
+
+def _lane_time(r: dict):
+    ft = r["_info"]["final_time"]
+    return (clock_text(ft), "", True) if r["finished"] and ft is not None else ("–", "", False)
+
+
+def _behind_text(v: float | None) -> str:
+    if v is None:
+        return "–"
+    return "1º" if v == 0 else f"+{br(v)} s"
 
 
 def _composite_clipped(dst: Image.Image, src: Image.Image, x: int, y: int) -> None:

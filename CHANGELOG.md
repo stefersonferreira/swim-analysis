@@ -18,6 +18,9 @@ Várias raias no mesmo vídeo (treino com saídas lado a lado).
   e velocidade média da prova (distância / tempo).
 - `strokes_partial`: ciclos marcados só num trecho do vídeo; o ritmo vale, a contagem vira "–".
   Observações de quem revisou (`notes`) também aparecem no resumo de um atleta.
+- Várias raias ao vivo: balão de saída e de chegada de cada raia (quem chega depois mostra a
+  diferença), coluna "Saída" no quadro, relógio para na última chegada; comparativo final com
+  coluna "Dif.".
 - Correção: "Gerar vídeo" travava quando o desenho de um quadro falhava (o ffmpeg ficava
   esperando quadros); agora o erro aparece. O fim com resumo não exige mais a chegada do
   atleta da prova.

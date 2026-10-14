@@ -45,6 +45,8 @@ export interface OverlayLane {
   final_time: number | null;
   speed: number | null;
   dpc: number | null;
+  start_t?: number | null;
+  behind?: number | null;
 }
 
 export interface LaneState {
@@ -52,6 +54,7 @@ export interface LaneState {
   strokes: number;
   tempo: number | null;
   finished: boolean;
+  started: boolean;
 }
 
 export interface OverlayTimeline {
@@ -144,8 +147,10 @@ export function stateAt(tl: OverlayTimeline, t: number): OverlayState {
       strokes: ld.length,
       tempo: [...ld].reverse().find((s) => s[1] != null)?.[1] ?? null,
       finished: lr.finish_t != null && t >= lr.finish_t,
+      started: lr.start_t != null && t >= lr.start_t,
     };
   });
+  let clockNow = clock;
   let summary =
     tf != null && t >= tf && t >= Math.min(tf + CALLOUT_S * 1.6, (tl.duration_s || 1e9) - SUMMARY_TAIL_S);
   if (lanes.length) {
@@ -154,9 +159,12 @@ export function stateAt(tl: OverlayTimeline, t: number): OverlayState {
     summary =
       (allIn && t >= Math.max(...(fins as number[])) + CALLOUT_S * 1.6) ||
       (!!tl.duration_s && t >= tl.duration_s - SUMMARY_TAIL_S);
+    // relógio para na chegada da última raia
+    const last = Math.max(...(fins as number[]));
+    if (allIn && t0 != null && tf == null && t >= last) clockNow = last - t0;
   }
   return {
-    clock,
+    clock: clockNow,
     phase: kind,
     phaseLabel: ph?.label ?? null,
     length: ln.index,

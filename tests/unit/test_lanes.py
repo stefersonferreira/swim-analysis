@@ -80,3 +80,20 @@ def test_single_athlete_timeline_has_no_lanes():
     race, evs = reference_free_50m()
     tl = build_timeline(race, evs, compute_metrics(race, evs))
     assert tl["lanes"] == [] and state_at(tl, 8.0)["lanes"] == []
+
+
+def test_lanes_live_callouts_difference_and_clock_stop():
+    race, evs = three_lanes()
+    evs.append(ev(E.FINISH_TOUCH, 22.5, 3))
+    tl = build_timeline(race, evs, compute_metrics(race, athlete_events(evs, None, None)),
+                        duration_s=30.0)  # fmt: skip
+    by = {lr["lane"]: lr for lr in tl["lanes"]}
+    assert by[2]["behind"] == 0 and by[1]["behind"] == pytest.approx(1.6)
+    titles = [c["title"] for c in tl["callouts"]]
+    assert "Raia 2 · Saída" in titles and "Raia 1 · Chegada" in titles
+    fin1 = next(c for c in tl["callouts"] if c["title"] == "Raia 1 · Chegada")
+    assert fin1["sub"] == "+1,60 s"
+    s = state_at(tl, 1.5)
+    assert not {r["lane"]: r for r in s["lanes"]}[1]["started"]
+    assert {r["lane"]: r for r in state_at(tl, 3.0)["lanes"]}[1]["started"]
+    assert state_at(tl, 25.0)["clock"] == pytest.approx(22.5 - 1.0)  # parou na última chegada

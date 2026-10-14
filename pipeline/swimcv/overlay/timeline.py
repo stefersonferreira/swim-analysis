@@ -376,8 +376,40 @@ def build_timeline(
                     "final_time": r.final_time_s,
                     "speed": r.avg_speed_mps,
                     "dpc": r.dpc_m,
+                    "start_t": (
+                        round(start.t + r.start_delay_s, 3)
+                        if start is not None and r.start_delay_s is not None
+                        else None
+                    ),
+                    "behind": None,
                 }
             )
+        # ao vivo: saída e chegada de cada raia em balões; quem chega depois vê a diferença
+        done = sorted((lr for lr in lanes_out if lr["final_time"] is not None),
+                      key=lambda lr: lr["final_time"])  # fmt: skip
+        for i, lr in enumerate(done):
+            lr["behind"] = round(lr["final_time"] - done[0]["final_time"], 3) if i else 0.0
+        word = {"feet_off": "do apito até sair do bloco", "entry": "do apito até entrar na água"}
+        for lr in lanes_out:
+            if lr["start_t"] is not None:
+                callout(
+                    lr["start_t"],
+                    "reaction",
+                    f"Raia {lr['lane']} · Saída",
+                    f"{br(lr['start_delay'])} s",
+                    word.get(lr["start_delay_kind"] or "", ""),
+                )
+            if lr["finish_t"] is not None and lr["final_time"] is not None:
+                sub_ = "1º a chegar" if lr["behind"] == 0 else f"+{br(lr['behind'])} s"
+                callout(
+                    lr["finish_t"],
+                    "finish",
+                    f"Raia {lr['lane']} · Chegada",
+                    f"{clock_text(lr['final_time'])} s",
+                    sub_,
+                    True,
+                )
+        callouts.sort(key=lambda c: c["t"])
 
     clock_end = (finish.t - t0) if (finish is not None and t0 is not None) else None
     return {
@@ -472,6 +504,7 @@ def state_at(tl: dict, t: float) -> dict:
                 "strokes": len(ld),
                 "tempo": next((s[1] for s in reversed(ld) if s[1] is not None), None),
                 "finished": lr["finish_t"] is not None and t >= lr["finish_t"],
+                "started": lr.get("start_t") is not None and t >= lr["start_t"],
             }
         )
     summary = (
@@ -485,6 +518,9 @@ def state_at(tl: dict, t: float) -> dict:
         summary = (all_in and t >= max(fins) + CALLOUT_S * 1.6) or (
             bool(tl["duration_s"]) and t >= tl["duration_s"] - SUMMARY_TAIL_S
         )
+        # relógio para na chegada da última raia
+        if all_in and t0 is not None and tf is None and t >= max(fins):
+            clock = max(fins) - t0
     return {
         "clock": clock,
         "phase": kind,
