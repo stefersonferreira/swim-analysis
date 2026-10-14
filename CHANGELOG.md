@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.0 — 2026-10-14
+
+Várias raias no mesmo vídeo (treino com saídas lado a lado).
+
+- Evento com raia (`Event.lane`, schema_version 2; migração 0004). Sem raia = o atleta da
+  prova; a largada sem raia vale para todas.
+- Revisão: teclas 1–8 escolhem a raia dos próximos eventos (0 volta ao atleta da prova);
+  o evento selecionado pode trocar de raia; a raia aparece no quadro e na linha do tempo.
+- Quadro comparativo (`swimcv.metrics.compare_lanes`, `/metrics` → `lanes`): saída (apito até
+  sair do bloco ou entrar na água), braçadas, ritmo (ciclos/min), tempo, velocidade média e
+  distância por ciclo quando há calibração. "–" = não visto no vídeo.
+- Sobreposição (tela e MP4): quadro ao vivo por raia (braçadas, ritmo, tempo ao chegar) e
+  comparativo lado a lado no fim, com observações de quem revisou (`notes`).
+
 ## 0.3.1 — 2026-10-14
 
 Ajustes a partir do primeiro vídeo real de treino (celular em pé, apito, saídas escalonadas).

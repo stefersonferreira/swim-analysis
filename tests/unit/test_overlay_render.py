@@ -86,3 +86,25 @@ def test_portrait_video_uses_bigger_panels():
     # cartão do relógio ocupa uma faixa larga no alto, sem sair do quadro
     assert diff[30:150, 30:250].mean() > 0.4
     assert not diff[:, -2:].all()
+
+
+def test_lanes_board_and_comparison_summary():
+    from swimcv.metrics import athlete_events
+    from tests.unit.test_lanes import three_lanes
+
+    race, evs = three_lanes()
+    tl = build_timeline(
+        race,
+        evs,
+        compute_metrics(race, athlete_events(evs, None, None)),
+        width=640,
+        height=360,
+        duration_s=23.4,
+    )
+    frame = Image.new("RGB", (640, 360), (40, 120, 180))
+    base = np.asarray(frame, int)
+    live = np.abs(np.asarray(Painter(tl, 640, 360).draw(frame, 12.0), int) - base).sum(axis=2) > 30
+    assert live[15:70, -120:-15].mean() > 0.5  # quadro das raias no canto
+    assert live[300:350, 100:540].mean() < 0.05  # sem barra de progresso de um atleta só
+    end = np.abs(np.asarray(Painter(tl, 640, 360).draw(frame, 23.35), int) - base).sum(axis=2) > 30
+    assert end[150:210, 220:420].mean() > 0.5  # comparativo no meio

@@ -160,7 +160,7 @@ export default function Timeline(props: {
                     }}
                   >
                     <title>
-                      {EVENT_LABEL[e.type]} · quadro {e.frame} · {e.t.toFixed(3)} s
+                      {EVENT_LABEL[e.type]}{e.lane != null ? ` · raia ${e.lane}` : ""} · quadro {e.frame} · {e.t.toFixed(3)} s
                       {e.image_xy ? "" : " · sem posição"}
                       {e.source === "auto" ? ` · automático (${Math.round(e.confidence * 100)}%)` : ""}
                     </title>

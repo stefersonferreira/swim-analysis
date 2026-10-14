@@ -53,7 +53,8 @@ a ordem de construção e os critérios de pronto estão lá e na tabela abaixo.
 pipeline/swimcv/contracts/    modelos de dados trocados entre módulos (fonte da verdade)
 pipeline/swimcv/ingest/       módulo 1: proxy todo-intra, tabela de PTS, áudio, leitura de quadro
 pipeline/swimcv/calibration/  calibração por cliques (homografia imagem -> piscina)
-pipeline/swimcv/metrics/      catálogo de métricas (puro) + resolução de posição + unidades
+pipeline/swimcv/metrics/      catálogo de métricas (puro) + resolução de posição + unidades;
+                              lanes.py: eventos por raia e quadro comparativo
 pipeline/swimcv/storage/      caminhos por vídeo (pasta local; S3 na etapa 2)
 pipeline/swimcv/camera/       movimento da câmera e homografia por quadro (entrega 5)
 pipeline/swimcv/tracking/     rastreamento do nadador na raia (faixa retificada + Viterbi)

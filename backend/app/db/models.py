@@ -69,6 +69,7 @@ class Event(Base):
     image_x: Mapped[float | None] = mapped_column(Float)
     image_y: Mapped[float | None] = mapped_column(Float)
     mark_m: Mapped[float | None] = mapped_column(Float)
+    lane: Mapped[int | None] = mapped_column(Integer)
     confidence: Mapped[float] = mapped_column(Float, default=1.0)
     source: Mapped[str] = mapped_column(String(10), default="manual")
     author: Mapped[str | None] = mapped_column(String(100))

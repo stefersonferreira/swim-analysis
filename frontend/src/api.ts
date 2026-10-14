@@ -46,7 +46,13 @@ export const api = {
   patchEvents: (
     id: string,
     body: {
-      create?: { type: EventType; frame: number; image_xy?: [number, number] | null; mark_m?: number | null }[];
+      create?: {
+        type: EventType;
+        frame: number;
+        image_xy?: [number, number] | null;
+        mark_m?: number | null;
+        lane?: number | null;
+      }[];
       update?: {
         id: string;
         frame?: number;
@@ -54,6 +60,8 @@ export const api = {
         image_xy?: [number, number] | null;
         clear_image_xy?: boolean;
         mark_m?: number | null;
+        lane?: number | null;
+        clear_lane?: boolean;
       }[];
       delete?: string[];
     },

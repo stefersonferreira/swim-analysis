@@ -119,12 +119,20 @@ def test_sparse_events_do_not_break():
 
 
 @pytest.mark.skipif(not shutil.which("node"), reason="node não instalado")
-@pytest.mark.parametrize("which", ["free", "free_traj", "breast"])
+@pytest.mark.parametrize("which", ["free", "free_traj", "breast", "lanes"])
 def test_browser_state_matches_python(tmp_path, which):
     """state.ts (navegador) e state_at (MP4) dão o mesmo resultado."""
     if which == "breast":
         race, evs = breast_50m()
         tl = build_timeline(race, evs, compute_metrics(race, evs))
+    elif which == "lanes":
+        from swimcv.metrics import athlete_events
+        from tests.unit.test_lanes import three_lanes
+
+        race, evs = three_lanes()
+        tl = build_timeline(
+            race, evs, compute_metrics(race, athlete_events(evs, None, None)), duration_s=23.4
+        )
     else:
         race, evs = reference_free_50m()
         traj = None

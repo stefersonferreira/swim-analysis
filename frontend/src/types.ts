@@ -63,6 +63,8 @@ export interface SwimEvent {
   image_xy: [number, number] | null;
   mark_m: number | null;
   x_m: number | null;
+  /** null = o atleta da prova; num vídeo com várias raias, a raia deste evento */
+  lane?: number | null;
   confidence: number;
   source: "auto" | "manual";
 }

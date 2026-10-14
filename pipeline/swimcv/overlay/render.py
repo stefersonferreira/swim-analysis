@@ -316,8 +316,12 @@ class Painter:
             fg = (255, 255, 255) if s["phase"] == "finish" else NAVY
             self.pill(img, cx, y + self.px(0.9), s["phase_label"], fpill, grad, fg)
 
+        # várias raias: quadro comparativo no lugar do painel de um atleta
+        if tl.get("lanes"):
+            if tl["t0"] is not None and t >= tl["t0"] and not s["show_summary"]:
+                self._lanes_board(img, s, y0)
         # painel da piscina
-        if s["phase"] not in (None, "ready") and tl.get("has_swim_data", True):
+        elif s["phase"] not in (None, "ready") and tl.get("has_swim_data", True):
             swimming = s["phase"] in ("swim", "underwater", "turn")
             rows = [
                 ("Piscina", str(s["length"] + 1), f"/{tl['n_lengths']}"),
@@ -360,7 +364,9 @@ class Painter:
         for i, c in enumerate(s["callouts"]):
             self._balloon(img, c, head, n - 1 - i, t)
 
-        if tl.get("track", {}).get("d"):  # sem posições, uma barra parada em 0 só confunde
+        if tl.get("track", {}).get("d") and not tl.get(
+            "lanes"
+        ):  # sem posições, uma barra parada em 0 só confunde
             self._progress(img, s)
         if s["show_summary"]:
             self._summary(img)
@@ -486,8 +492,165 @@ class Painter:
         sp, ox, oy = self._cache[key]
         _composite_clipped(img, sp, int(x + ox), int(y + oy))
 
+    # ---- várias raias ------------------------------------------------------------------
+    def _lanes_board(self, img, s: dict, y0: int) -> None:
+        """Quadro ao vivo: braçadas e ritmo de cada raia; tempo quando ela chega."""
+        tl = self.tl
+        fh = self.f("nunito", 0.85, 800)
+        fv = self.f("fredoka", 1.7, 600)
+        fu = self.f("nunito", 0.85, 700)
+        fc = self.f("nunito", 1.0, 900)
+        pw, pad = self.px(20), self.px(1.2)
+        head_h, row_h = self.px(2.0), self.px(2.7)
+        rows = s["lanes"]
+        ph = pad + head_h + len(rows) * row_h + self.px(0.6)
+        px0 = self.W - self.px(1.8) - pw
+        self.put_card(img, px0, y0, pw, ph, border=(110, 231, 183, 90), glow=MINT, glow_a=0.22)
+        d = ImageDraw.Draw(img)
+        x_lane = px0 + pad
+        x_str = px0 + self.px(9.0)
+        x_rate = px0 + self.px(14.2)
+        x_time = px0 + pw - pad
+        hy = y0 + pad + self.px(0.9)
+        self.text(d, (x_lane, hy), "Raia", fh, MINT)
+        self.text(d, (x_str, hy), "Braçadas", fh, MINT, anchor="rs")
+        self.text(d, (x_rate, hy), "Ritmo", fh, MINT, anchor="rs")
+        self.text(d, (x_time, hy), "Tempo", fh, MINT, anchor="rs")
+        info = {lr["lane"]: lr for lr in tl["lanes"]}
+        for i, r in enumerate(rows):
+            cy = y0 + pad + head_h + i * row_h + row_h / 2
+            rr = self.px(0.95)
+            d.ellipse((x_lane, cy - rr, x_lane + 2 * rr, cy + rr), fill=AMBER)
+            d.text((x_lane + rr, cy), str(r["lane"]), font=fc, fill=NAVY, anchor="mm")
+            base = cy + self.px(0.65)
+            self.text(d, (x_str, base), str(r["strokes"]), fv, TEXT, anchor="rs")
+            if r["tempo"]:
+                rate = f"{60 / r['tempo']:.0f}"
+                uw = _text_w("/min", fu)
+                self.text(d, (x_rate - uw - self.px(0.15), base), rate, fv, TEXT, anchor="rs")
+                self.text(d, (x_rate, base), "/min", fu, MUTED, anchor="rs")
+            else:
+                self.text(d, (x_rate, base), "–", fv, MUTED, anchor="rs")
+            ft = info[r["lane"]]["final_time"]
+            if r["finished"] and ft is not None:
+                self.text(d, (x_time, base), clock_text(ft), fv, MINT, anchor="rs")
+            else:
+                self.text(d, (x_time, base), "–", fv, MUTED, anchor="rs")
+            if i < len(rows) - 1:
+                ly = cy + row_h / 2
+                d.line((x_lane, ly, x_time, ly), fill=(159, 176, 204, 46), width=1)
+
+    def _lanes_summary(self, img) -> None:
+        """Quadro final: uma linha por raia, lado a lado."""
+        tl = self.tl
+        key = ("lanes_summary",)
+        if key not in self._cache:
+            fw = self.f("fredoka", 1.4, 700)
+            ft = self.f("fredoka", 2.2, 600)
+            fs = self.f("nunito", 1.0, 700)
+            fh = self.f("nunito", 0.9, 800)
+            fv = self.f("fredoka", 1.5, 600)
+            fn = self.f("nunito", 0.8, 700)
+            fc = self.f("nunito", 1.0, 900)
+            lanes = tl["lanes"]
+            kinds = {lr["start_delay_kind"] for lr in lanes if lr["start_delay_kind"]}
+            cols = [
+                (
+                    "Saída",
+                    lambda lr: (
+                        f"{br(lr['start_delay'])} s" if lr["start_delay"] is not None else "–"
+                    ),
+                ),
+                (tl["stroke_word"], lambda lr: str(lr["n_strokes"]) if lr["n_strokes"] else "–"),
+                ("Ritmo", lambda lr: f"{lr['rate']:.0f}/min" if lr["rate"] else "–"),
+                ("Tempo", lambda lr: clock_text(lr["final_time"]) if lr["final_time"] else "–"),
+                ("Velocidade", lambda lr: f"{br(lr['speed'])} m/s" if lr["speed"] else "–"),
+            ]
+            notes = []
+            if "entry" in kinds:
+                notes.append("Saída: do apito até entrar na água")
+            elif "feet_off" in kinds:
+                notes.append("Saída: do apito até sair do bloco")
+            if any(lr["final_time"] is None for lr in lanes):
+                notes.append("– : chegada fora do vídeo")
+            notes.append("Ritmo: ciclos de braço por minuto")
+            notes += tl.get("notes", [])
+            col_w = [self.px(6.2), self.px(6.2), self.px(6.6), self.px(6.4), self.px(7.6)]
+            lane_w = self.px(4.0)
+            pad = self.px(2.2)
+            w = max(pad * 2 + lane_w + sum(col_w), self.px(34))
+            row_h = self.px(3.0)
+            title = tl["title"] or tl["race_label"]
+            h = (
+                pad
+                + self.px(1.4 + 2.8 + 1.8 + 2.4)
+                + (len(lanes)) * row_h
+                + self.px(0.8)
+                + len(notes) * self.px(1.4)
+                + pad
+            )
+            sprite, m, _ = self.card(
+                w, h, self.px(2), border=(110, 231, 183, 128), glow=MINT, glow_a=0.3
+            )
+            sp = sprite.copy()
+            ImageDraw.Draw(sp).rounded_rectangle(
+                (m, m, m + w, m + h),
+                self.px(2),
+                fill=(11, 18, 32, 235),
+                outline=(110, 231, 183, 128),
+                width=max(1, self.px(0.15)),
+            )
+            d = ImageDraw.Draw(sp)
+            x = m + pad
+            y = m + pad + self.px(1.4)
+            self.grad_text(sp, x, y, "Fluxi Swim", fw, MINT, SKY)
+            y += self.px(2.8)
+            d.text((x, y), title, font=ft, fill=TEXT, anchor="ls")
+            y += self.px(1.8)
+            sub = " · ".join(v for v in (tl["race_label"], tl["pool_label"]) if v)
+            d.text((x, y), sub, font=fs, fill=MUTED, anchor="ls")
+            y += self.px(2.4)
+            d.text((x, y), "Raia", font=fh, fill=MINT, anchor="ls")
+            cx = x + lane_w
+            rights = []
+            for (name, _), cw in zip(cols, col_w, strict=True):
+                cx += cw
+                rights.append(cx)
+                d.text((cx, y), name, font=fh, fill=MINT, anchor="rs")
+            for lr in lanes:
+                cy = y + self.px(0.6) + row_h / 2
+                rr = self.px(1.0)
+                d.ellipse((x, cy - rr, x + 2 * rr, cy + rr), fill=AMBER)
+                d.text((x + rr, cy), str(lr["lane"]), font=fc, fill=NAVY, anchor="mm")
+                for (_, fn_), rx in zip(cols, rights, strict=True):
+                    val = fn_(lr)
+                    d.text(
+                        (rx, cy + self.px(0.55)),
+                        val,
+                        font=fv,
+                        fill=MUTED if val == "–" else TEXT,
+                        anchor="rs",
+                        features=["tnum"],
+                    )
+                y += row_h
+                d.line(
+                    (x, y + self.px(0.6), rights[-1], y + self.px(0.6)),
+                    fill=(159, 176, 204, 51),
+                    width=1,
+                )
+            y += self.px(0.8)
+            for note in notes:
+                y += self.px(1.4)
+                d.text((x, y), note, font=fn, fill=MUTED, anchor="ls")
+            self._cache[key] = (sp, w, h, m)
+        sp, w, h, m = self._cache[key]
+        _composite_clipped(img, sp, int((self.W - w) / 2 - m), int((self.H - h) / 2 - m))
+
     def _summary(self, img) -> None:
         tl = self.tl
+        if tl.get("lanes"):
+            self._lanes_summary(img)
+            return
         key = ("summary",)
         if key not in self._cache:
             fw = self.f("fredoka", 1.6, 700)
@@ -585,7 +748,7 @@ def render_mp4(
     fps = float(round(fps)) if abs(fps - round(fps)) < 0.05 else fps
     duration = float(pts[-1]) + 1.0 / fps
     n_main = int(math.floor(duration * fps))
-    n_end = int(END_HOLD_S * fps) if tl.get("t_finish") is not None else 0
+    n_end = int(END_HOLD_S * fps) if (tl.get("t_finish") is not None or tl.get("lanes")) else 0
     total = n_main + n_end
     out.parent.mkdir(parents=True, exist_ok=True)
     tmp = out.with_suffix(".partial.mp4")

@@ -30,9 +30,12 @@ class Event(BaseModel):
     - `x_m`: posição ao longo da piscina, medida a partir da parede de saída (0..L).
     - `mark_m`: só para MARK_PASS, distância da marca até a parede de impulsão da
       piscina corrente (ex.: 15 = marca de 15 m).
+
+    Raia (`lane`): None = o atleta da prova (RaceInfo.lane). Num vídeo com várias raias, cada
+    evento de nado leva a sua raia; um START_SIGNAL sem raia é a largada comum a todas.
     """
 
-    schema_version: int = 1
+    schema_version: int = 2
     id: str = Field(default_factory=lambda: uuid4().hex)
     type: EventType
     frame: int = Field(ge=0)
@@ -40,6 +43,7 @@ class Event(BaseModel):
     image_xy: tuple[float, float] | None = None
     x_m: float | None = None
     mark_m: float | None = None
+    lane: int | None = Field(None, ge=1, le=10)
     confidence: float = Field(1.0, ge=0, le=1)
     source: EventSource = EventSource.MANUAL
     author: str | None = None

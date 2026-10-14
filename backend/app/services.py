@@ -12,7 +12,7 @@ from app.db import AuditLog, Event, Video
 from swimcv import contracts as c
 from swimcv.analyze import AnalysisFiles, load_homographies
 from swimcv.calibration import grid_lines, solve
-from swimcv.metrics import compute_metrics, resolve_positions
+from swimcv.metrics import athlete_events, compare_lanes, compute_metrics, resolve_positions
 from swimcv.overlay import build_timeline
 from swimcv.storage import VideoPaths
 
@@ -37,6 +37,7 @@ def to_contract(e: Event) -> c.Event:
         t=e.t,
         image_xy=xy,
         mark_m=e.mark_m,
+        lane=e.lane,
         confidence=e.confidence,
         source=c.EventSource(e.source),
         author=e.author,
@@ -56,6 +57,7 @@ def event_dict(e: Event, x_m: float | None = None) -> dict:
         "t": e.t,
         "image_xy": [e.image_x, e.image_y] if e.image_x is not None else None,
         "mark_m": e.mark_m,
+        "lane": e.lane,
         "x_m": x_m,
         "confidence": e.confidence,
         "source": e.source,
@@ -96,7 +98,7 @@ def metrics_payload(db: Session, video: Video) -> dict:
     rows = live_events(db, video.id)
     H = load_homographies(video_paths(video.id))
     resolved = resolve_positions([to_contract(e) for e in rows], calibration_of(video), H)
-    report = compute_metrics(race, resolved)
+    report = compute_metrics(race, athlete_events(resolved, None, race.lane))
     metrics = [m.model_dump(mode="json") for m in report.metrics]
     x_by_id = {e.id: e.x_m for e in resolved}
     alerts = [a.model_dump(mode="json") for a in report.alerts]
@@ -117,6 +119,10 @@ def metrics_payload(db: Session, video: Video) -> dict:
         "metrics": metrics,
         "alerts": alerts,
         "race": race.model_dump(mode="json"),
+        # quadro comparativo quando há eventos marcados por raia
+        "lanes": [r.as_dict() for r in compare_lanes(race, resolved)]
+        if any(e.lane is not None for e in resolved)
+        else [],
     }
 
 
@@ -129,7 +135,7 @@ def overlay_timeline(db: Session, video: Video) -> dict:
     H = load_homographies(paths)
     rows = live_events(db, video.id)
     resolved = resolve_positions([to_contract(e) for e in rows], calibration_of(video), H)
-    report = compute_metrics(race, resolved)
+    report = compute_metrics(race, athlete_events(resolved, None, race.lane))
     traj = None
     f = AnalysisFiles.of(paths).trajectory
     if f.exists():

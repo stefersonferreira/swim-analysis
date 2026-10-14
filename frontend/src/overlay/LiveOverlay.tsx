@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import "./overlay.css";
-import { type Callout, type OverlayTimeline, br, clockText, stateAt } from "./state";
+import { type Callout, type OverlayLane, type OverlayState, type OverlayTimeline, br, clockText, stateAt } from "./state";
 
 /**
  * Sobreposição ao vivo com a identidade Fluxi Swim. Fica por cima do quadro (pointer-events
@@ -13,6 +13,7 @@ export default function LiveOverlay({ tl, t }: { tl: OverlayTimeline; t: number 
   const progress = s.raceD != null ? Math.min(1, Math.max(0, s.raceD / tl.distance)) : 0;
   const walls = Array.from({ length: tl.n_lengths - 1 }, (_, i) => (i + 1) * tl.pool_length);
   const swimming = s.phase === "swim" || s.phase === "underwater" || s.phase === "turn";
+  const lanes = tl.lanes ?? [];
 
   return (
     <div className="fx-overlay" aria-label="Sobreposição da prova">
@@ -33,8 +34,9 @@ export default function LiveOverlay({ tl, t }: { tl: OverlayTimeline; t: number 
         )}
       </div>
 
-      {/* números da piscina atual */}
-      {s.phase !== "ready" && s.phase != null && tl.has_swim_data !== false && (
+      {/* várias raias: quadro comparativo ao vivo; um atleta: números da piscina atual */}
+      {lanes.length > 0 && tl.t0 != null && t >= tl.t0 && !s.showSummary && <LanesBoard tl={tl} s={s} />}
+      {lanes.length === 0 && s.phase !== "ready" && s.phase != null && tl.has_swim_data !== false && (
         <div className="fx-card fx-stats">
           <Stat label="Piscina" value={`${s.length + 1}`} unit={`/${tl.n_lengths}`} />
           <Stat label={tl.stroke_word} value={String(s.strokes)} testid="fx-strokes" />
@@ -55,7 +57,7 @@ export default function LiveOverlay({ tl, t }: { tl: OverlayTimeline; t: number 
       ))}
 
       {/* barra de progresso (só com posições: parada em 0 só confundiria) */}
-      {tl.track.d.length > 0 && (
+      {tl.track.d.length > 0 && lanes.length === 0 && (
       <div className="fx-progress">
         <div className="fx-track">
           <div className="fx-fill" style={{ width: `${100 * progress}%` }} />
@@ -78,7 +80,7 @@ export default function LiveOverlay({ tl, t }: { tl: OverlayTimeline; t: number 
       </div>
       )}
 
-      {s.showSummary && <Summary tl={tl} />}
+      {s.showSummary && (lanes.length > 0 ? <LanesSummary tl={tl} lanes={lanes} /> : <Summary tl={tl} />)}
     </div>
   );
 }
@@ -149,6 +151,91 @@ function Summary({ tl }: { tl: OverlayTimeline }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function LaneChip({ lane }: { lane: number }) {
+  return <span className="fx-lane-chip">{lane}</span>;
+}
+
+/** Ao vivo: braçadas e ritmo de cada raia; o tempo aparece quando ela chega. */
+function LanesBoard({ tl, s }: { tl: OverlayTimeline; s: OverlayState }) {
+  const info = new Map((tl.lanes ?? []).map((lr) => [lr.lane, lr]));
+  return (
+    <div className="fx-card fx-lanes" data-testid="fx-lanes">
+      <span className="fx-lanes-head">Raia</span>
+      <span className="fx-lanes-head">{tl.stroke_word}</span>
+      <span className="fx-lanes-head">Ritmo</span>
+      <span className="fx-lanes-head">Tempo</span>
+      {s.lanes.map((r) => {
+        const ft = info.get(r.lane)?.final_time ?? null;
+        return [
+          <LaneChip key={`c${r.lane}`} lane={r.lane} />,
+          <b key={`s${r.lane}`} data-testid="fx-lane-strokes">{r.strokes}</b>,
+          <b key={`r${r.lane}`} className={r.tempo ? "" : "muted"}>
+            {r.tempo ? (
+              <>
+                {(60 / r.tempo).toFixed(0)}
+                <small>/min</small>
+              </>
+            ) : (
+              "–"
+            )}
+          </b>,
+          <b key={`t${r.lane}`} className={r.finished && ft != null ? "mint" : "muted"}>
+            {r.finished && ft != null ? clockText(ft) : "–"}
+          </b>,
+        ];
+      })}
+    </div>
+  );
+}
+
+/** Fim: uma linha por raia, lado a lado. "–" = não visto no vídeo. */
+function LanesSummary({ tl, lanes }: { tl: OverlayTimeline; lanes: OverlayLane[] }) {
+  const kinds = new Set(lanes.map((l) => l.start_delay_kind).filter(Boolean));
+  const notes: string[] = [];
+  if (kinds.has("entry")) notes.push("Saída: do apito até entrar na água");
+  else if (kinds.has("feet_off")) notes.push("Saída: do apito até sair do bloco");
+  if (lanes.some((l) => l.final_time == null)) notes.push("– : chegada fora do vídeo");
+  notes.push("Ritmo: ciclos de braço por minuto", ...(tl.notes ?? []));
+  const cols: [string, (l: OverlayLane) => string][] = [
+    ["Saída", (l) => (l.start_delay != null ? `${br(l.start_delay)} s` : "–")],
+    [tl.stroke_word, (l) => (l.n_strokes ? String(l.n_strokes) : "–")],
+    ["Ritmo", (l) => (l.rate ? `${l.rate.toFixed(0)}/min` : "–")],
+    ["Tempo", (l) => (l.final_time ? clockText(l.final_time) : "–")],
+    ["Velocidade", (l) => (l.speed ? `${br(l.speed)} m/s` : "–")],
+  ];
+  return (
+    <div className="fx-summary" data-testid="fx-summary">
+      <div className="fx-wordmark">Fluxi Swim</div>
+      <div className="fx-summary-title">{tl.title || tl.race_label}</div>
+      <div className="fx-summary-sub">{[tl.race_label, tl.pool_label].filter(Boolean).join(" · ")}</div>
+      <div className="fx-lanes-table">
+        <span className="fx-lanes-head">Raia</span>
+        {cols.map(([name]) => (
+          <span key={name} className="fx-lanes-head">
+            {name}
+          </span>
+        ))}
+        {lanes.map((l) => [
+          <LaneChip key={`c${l.lane}`} lane={l.lane} />,
+          ...cols.map(([name, f]) => {
+            const v = f(l);
+            return (
+              <b key={`${name}${l.lane}`} className={v === "–" ? "muted" : ""}>
+                {v}
+              </b>
+            );
+          }),
+        ])}
+      </div>
+      {notes.map((n) => (
+        <div key={n} className="fx-lanes-note">
+          {n}
+        </div>
+      ))}
     </div>
   );
 }

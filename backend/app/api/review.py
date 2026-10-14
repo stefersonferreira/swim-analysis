@@ -34,6 +34,7 @@ class EventIn(BaseModel):
     frame: int = Field(ge=0)
     image_xy: tuple[float, float] | None = None
     mark_m: float | None = None
+    lane: int | None = Field(None, ge=1, le=10)
 
 
 class EventUpdate(BaseModel):
@@ -43,6 +44,8 @@ class EventUpdate(BaseModel):
     image_xy: tuple[float, float] | None = None
     clear_image_xy: bool = False
     mark_m: float | None = None
+    lane: int | None = Field(None, ge=1, le=10)
+    clear_lane: bool = False
 
 
 class EventsPatch(BaseModel):
@@ -89,6 +92,7 @@ def patch_events(video_id: str, body: EventsPatch, db: Session = Depends(get_db)
             image_x=e.image_xy[0] if e.image_xy else None,
             image_y=e.image_xy[1] if e.image_xy else None,
             mark_m=e.mark_m,
+            lane=e.lane,
             source="manual",
             author=body.author,
         )
@@ -111,6 +115,10 @@ def patch_events(video_id: str, body: EventsPatch, db: Session = Depends(get_db)
             row.image_x, row.image_y = u.image_xy
         if u.mark_m is not None:
             row.mark_m = u.mark_m
+        if u.clear_lane:
+            row.lane = None
+        elif u.lane is not None:
+            row.lane = u.lane
         row.source = "manual"
         audit(db, v.id, "event", row.id, "update", before, event_dict(row), body.author)
     for event_id in body.delete:

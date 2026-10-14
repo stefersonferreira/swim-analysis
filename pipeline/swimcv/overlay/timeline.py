@@ -20,6 +20,7 @@ import numpy as np
 
 from swimcv.contracts import Event, EventType, MetricsReport, RaceInfo, Stroke
 from swimcv.metrics.compute import split_lengths
+from swimcv.metrics.lanes import athlete_events, compare_lanes
 
 E = EventType
 CALLOUT_S = 2.6  # tempo que um balão fica na tela
@@ -161,13 +162,19 @@ def build_timeline(
     height: int = 1080,
     duration_s: float = 0.0,
     trajectory: dict | None = None,
+    notes: list[str] | None = None,
 ) -> dict:
     """Tudo o que a sobreposição precisa, em JSON simples.
+
+    notes: observações de quem revisou, mostradas no quadro final (ex.: trecho do vídeo em
+    que as braçadas foram contadas).
 
     trajectory: colunas t, head_x e, opcionalmente, head_img_x/head_img_y (como em
     analysis/trajectory.parquet).
     """
-    evs = sorted(events, key=lambda e: (e.t, e.frame))
+    all_events = events
+    # o atleta da prova (eventos sem raia ou da raia da prova) + a largada comum
+    evs = sorted(athlete_events(events, None, race.lane), key=lambda e: (e.t, e.frame))
     L = race.pool_length_m
     start = _first(evs, E.START_SIGNAL)
     lengths = split_lengths(race, evs)
@@ -338,6 +345,28 @@ def build_timeline(
     if n_strokes:
         rows.append([stroke_word, str(n_strokes)])
 
+    # ---- várias raias: quadro comparativo -------------------------------------------------
+    lanes_out = []
+    if any(e.lane is not None for e in all_events):
+        for r in compare_lanes(race, all_events):
+            st = r.stroke_times
+            tps = [round(st[i] - st[i - cycle], 3) if i >= cycle else None for i in range(len(st))]
+            lanes_out.append(
+                {
+                    "lane": r.lane,
+                    "strokes": [[round(a, 3), b] for a, b in zip(st, tps, strict=True)],
+                    "n_strokes": r.strokes,
+                    "start_delay": r.start_delay_s,
+                    "start_delay_kind": r.start_delay_kind,
+                    "tempo": r.tempo_s_per_cycle,
+                    "rate": r.stroke_rate_cpm,
+                    "finish_t": r.finish_t,
+                    "final_time": r.final_time_s,
+                    "speed": r.avg_speed_mps,
+                    "dpc": r.dpc_m,
+                }
+            )
+
     clock_end = (finish.t - t0) if (finish is not None and t0 is not None) else None
     return {
         "schema_version": 1,
@@ -369,6 +398,8 @@ def build_timeline(
             "v": speeds,
         },
         "summary": rows,
+        "lanes": lanes_out,
+        "notes": list(notes or []),
     }
 
 
@@ -419,6 +450,28 @@ def state_at(tl: dict, t: float) -> dict:
     if kind not in ("swim", "underwater", "turn"):
         v = None
     active = [c for c in tl["callouts"] if c["t"] <= t < c["until"]]
+    lanes = []
+    for lr in tl.get("lanes", []):
+        ld = [s for s in lr["strokes"] if s[0] <= t]
+        lanes.append(
+            {
+                "lane": lr["lane"],
+                "strokes": len(ld),
+                "tempo": next((s[1] for s in reversed(ld) if s[1] is not None), None),
+                "finished": lr["finish_t"] is not None and t >= lr["finish_t"],
+            }
+        )
+    summary = (
+        tf is not None
+        and t >= tf
+        and t >= min(tf + CALLOUT_S * 1.6, (tl["duration_s"] or 1e9) - SUMMARY_TAIL_S)
+    )
+    if lanes:
+        fins = [lr["finish_t"] for lr in tl["lanes"]]
+        all_in = all(f is not None for f in fins)
+        summary = (all_in and t >= max(fins) + CALLOUT_S * 1.6) or (
+            bool(tl["duration_s"]) and t >= tl["duration_s"] - SUMMARY_TAIL_S
+        )
     return {
         "clock": clock,
         "phase": kind,
@@ -430,8 +483,8 @@ def state_at(tl: dict, t: float) -> dict:
         "race_d": d,
         "head": [x, y] if x is not None and y is not None else None,
         "callouts": active[-2:],
-        # resumo depois do balão de chegada, ou no fim do vídeo se ele acabar antes
-        "show_summary": tf is not None
-        and t >= tf
-        and t >= min(tf + CALLOUT_S * 1.6, (tl["duration_s"] or 1e9) - SUMMARY_TAIL_S),
+        # resumo depois do balão de chegada, ou no fim do vídeo se ele acabar antes; com várias
+        # raias, depois da última chegada ou no fim do vídeo
+        "show_summary": summary,
+        "lanes": lanes,
     }

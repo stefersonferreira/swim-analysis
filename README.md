@@ -72,6 +72,10 @@ Vídeos e resultados ficam em `./data`; o banco, no volume `pgdata`.
    tempo de ciclo, velocidade, balões que seguem o nadador (breakout, 15 m, parciais, chegada)
    e a barra de progresso. "Modo apresentação" abre em tela cheia sem as marcações de edição.
    "Gerar vídeo" grava um MP4 com o mesmo visual e um resumo no fim, para enviar ao atleta.
+6. **Várias raias no mesmo vídeo:** marque a largada uma vez (vale para todas) e use as teclas
+   1–8 para dizer de que raia são as entradas, braçadas e chegadas. A sobreposição troca o
+   painel do atleta por um quadro com braçadas, ritmo e tempo de cada raia e, no fim, mostra
+   o comparativo: saída, braçadas, ritmo, tempo e velocidade média.
 
 | Tecla | Ação |
 | --- | --- |
@@ -85,6 +89,7 @@ Vídeos e resultados ficam em `./data`; o banco, no volume `pgdata`.
 | . | Move o evento selecionado para o quadro atual |
 | Delete · Esc · N · G | Apagar · desmarcar · próximo alerta · grade da piscina |
 | V | Liga/desliga a sobreposição |
+| 1–8 · 0 | Raia dos próximos eventos (vários atletas no vídeo) · volta ao atleta da prova |
 
 As métricas são recalculadas a cada mudança. “—” significa não medido (o motivo aparece ao
 passar o mouse). Os tempos vêm sempre do relógio real de cada quadro (vídeos de celular têm

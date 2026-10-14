@@ -32,6 +32,28 @@ export interface OverlayLength {
   split: number | null;
 }
 
+/** Uma raia no quadro comparativo (vários atletas no mesmo vídeo). */
+export interface OverlayLane {
+  lane: number;
+  strokes: [number, number | null][];
+  n_strokes: number;
+  start_delay: number | null;
+  start_delay_kind: "feet_off" | "entry" | null;
+  tempo: number | null;
+  rate: number | null;
+  finish_t: number | null;
+  final_time: number | null;
+  speed: number | null;
+  dpc: number | null;
+}
+
+export interface LaneState {
+  lane: number;
+  strokes: number;
+  tempo: number | null;
+  finished: boolean;
+}
+
 export interface OverlayTimeline {
   schema_version: number;
   width: number;
@@ -55,6 +77,8 @@ export interface OverlayTimeline {
   callouts: Callout[];
   track: { t: number[]; d: number[]; x: (number | null)[]; y: (number | null)[]; v: (number | null)[] };
   summary: [string, string][];
+  lanes?: OverlayLane[];
+  notes?: string[];
 }
 
 export interface OverlayState {
@@ -69,6 +93,7 @@ export interface OverlayState {
   head: [number, number] | null;
   callouts: Callout[];
   showSummary: boolean;
+  lanes: LaneState[];
 }
 
 const CALLOUT_S = 2.6;
@@ -110,6 +135,24 @@ export function stateAt(tl: OverlayTimeline, t: number): OverlayState {
   const y = interp(tr.t, tr.y, t);
   const kind = ph?.kind ?? null;
   const v = kind === "swim" || kind === "underwater" || kind === "turn" ? interp(tr.t, tr.v, t) : null;
+  const lanes: LaneState[] = (tl.lanes ?? []).map((lr) => {
+    const ld = lr.strokes.filter((s) => s[0] <= t);
+    return {
+      lane: lr.lane,
+      strokes: ld.length,
+      tempo: [...ld].reverse().find((s) => s[1] != null)?.[1] ?? null,
+      finished: lr.finish_t != null && t >= lr.finish_t,
+    };
+  });
+  let summary =
+    tf != null && t >= tf && t >= Math.min(tf + CALLOUT_S * 1.6, (tl.duration_s || 1e9) - SUMMARY_TAIL_S);
+  if (lanes.length) {
+    const fins = (tl.lanes ?? []).map((lr) => lr.finish_t);
+    const allIn = fins.every((f) => f != null);
+    summary =
+      (allIn && t >= Math.max(...(fins as number[])) + CALLOUT_S * 1.6) ||
+      (!!tl.duration_s && t >= tl.duration_s - SUMMARY_TAIL_S);
+  }
   return {
     clock,
     phase: kind,
@@ -121,8 +164,10 @@ export function stateAt(tl: OverlayTimeline, t: number): OverlayState {
     raceD: interp(tr.t, tr.d, t),
     head: x != null && y != null ? [x, y] : null,
     callouts: tl.callouts.filter((c) => c.t <= t && t < c.until).slice(-2),
-    // resumo depois do balão de chegada, ou no fim do vídeo se ele acabar antes
-    showSummary: tf != null && t >= tf && t >= Math.min(tf + CALLOUT_S * 1.6, (tl.duration_s || 1e9) - SUMMARY_TAIL_S),
+    // resumo depois do balão de chegada, ou no fim do vídeo se ele acabar antes; com várias
+    // raias, depois da última chegada ou no fim do vídeo
+    showSummary: summary,
+    lanes,
   };
 }
 

@@ -24,10 +24,10 @@
       "type": "string"
     }
   },
-  "description": "Um acontecimento da prova num instante do vídeo.\n\nPosição:\n- `image_xy`: ponto clicado no quadro (pixels do proxy). Convertido em `x_m` pela\n  calibração no momento do cálculo, para que recalibrar atualize tudo.\n- `x_m`: posição ao longo da piscina, medida a partir da parede de saída (0..L).\n- `mark_m`: só para MARK_PASS, distância da marca até a parede de impulsão da\n  piscina corrente (ex.: 15 = marca de 15 m).",
+  "description": "Um acontecimento da prova num instante do vídeo.\n\nPosição:\n- `image_xy`: ponto clicado no quadro (pixels do proxy). Convertido em `x_m` pela\n  calibração no momento do cálculo, para que recalibrar atualize tudo.\n- `x_m`: posição ao longo da piscina, medida a partir da parede de saída (0..L).\n- `mark_m`: só para MARK_PASS, distância da marca até a parede de impulsão da\n  piscina corrente (ex.: 15 = marca de 15 m).\n\nRaia (`lane`): None = o atleta da prova (RaceInfo.lane). Num vídeo com várias raias, cada\nevento de nado leva a sua raia; um START_SIGNAL sem raia é a largada comum a todas.",
   "properties": {
     "schema_version": {
-      "default": 1,
+      "default": 2,
       "title": "Schema Version",
       "type": "integer"
     },
@@ -93,6 +93,20 @@
       ],
       "default": null,
       "title": "Mark M"
+    },
+    "lane": {
+      "anyOf": [
+        {
+          "maximum": 10,
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Lane"
     },
     "confidence": {
       "default": 1.0,

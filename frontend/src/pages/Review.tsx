@@ -58,6 +58,8 @@ export default function Review({ videoId }: { videoId: string }) {
   }, []);
   const [cycleType, setCycleType] = useState<EventType>("stroke");
   const [markM, setMarkM] = useState(15);
+  // raia dos próximos eventos (null = o atleta da prova); teclas 1–8, 0 volta
+  const [markLane, setMarkLane] = useState<number | null>(null);
   const [zoom, setZoom] = useState(1);
   const [showGrid, setShowGrid] = useState(true);
   const [mode, setMode] = useState<Mode>("review");
@@ -318,7 +320,15 @@ export default function Review({ videoId }: { videoId: string }) {
     async (type: EventType) => {
       pause();
       const job = patch({
-        create: [{ type, frame, mark_m: type === "mark_pass" ? markM : null }],
+        // a largada é comum a todas as raias
+        create: [
+          {
+            type,
+            frame,
+            mark_m: type === "mark_pass" ? markM : null,
+            lane: type === "start_signal" ? null : markLane,
+          },
+        ],
       }).then((st) => st?.created_ids[0] ?? null);
       pendingCreate.current = job;
       const id = await job;
@@ -328,7 +338,7 @@ export default function Review({ videoId }: { videoId: string }) {
         setCycleType(type);
       }
     },
-    [frame, markM, patch, pause, setSelectedId],
+    [frame, markM, markLane, patch, pause, setSelectedId],
   );
 
   const jumpType = (dir: 1 | -1) => {
@@ -466,6 +476,7 @@ export default function Review({ videoId }: { videoId: string }) {
     else if (k === "v") setShowOverlay((s) => !s);
     else if (e.key === "." && selected) void patch({ update: [{ id: selected.id, frame }] });
     else if (e.key === "Escape") setSelectedId(null);
+    else if (mode === "review" && /^[0-8]$/.test(e.key)) setMarkLane(e.key === "0" ? null : Number(e.key));
     else if (mode === "review" && KEY_TO_TYPE[k]) void createEvent(KEY_TO_TYPE[k]);
     else return;
     e.preventDefault();
@@ -634,6 +645,7 @@ export default function Review({ videoId }: { videoId: string }) {
                     stroke={EVENT_COLOR[e.type]} strokeWidth={e.id === selectedId ? 4 : 2.5} />
                   <text x={e.image_xy![0] + W / 90} y={e.image_xy![1]} className="ev-label" fill={EVENT_COLOR[e.type]}>
                     {EVENT_LABEL[e.type]}
+                    {e.lane != null ? ` · R${e.lane}` : ""}
                     {e.x_m != null ? ` · ${e.x_m.toFixed(1).replace(".", ",")} m` : ""}
                   </text>
                 </g>
@@ -733,6 +745,19 @@ export default function Review({ videoId }: { videoId: string }) {
                     ))}
                 </div>
                 <label className="inline small">
+                  Raia (vários atletas no vídeo):
+                  <select
+                    value={markLane ?? ""}
+                    onChange={(e) => setMarkLane(e.target.value ? Number(e.target.value) : null)}
+                    data-testid="mark-lane"
+                  >
+                    <option value="">Atleta da prova</option>
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                      <option key={n} value={n}>Raia {n}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="inline small">
                   Marca para “P”:
                   <select value={markM} onChange={(e) => setMarkM(Number(e.target.value))}>
                     {[5, 10, 15, 20].map((m) => (
@@ -742,7 +767,8 @@ export default function Review({ videoId }: { videoId: string }) {
                 </label>
                 <p className="muted small">
                   ← → quadro · Shift ±10 · K/espaço pausa · L avança · J volta · [ ] anterior/próximo
-                  do tipo · “.” move o selecionado para cá · Del apaga · N próximo alerta
+                  do tipo · “.” move o selecionado para cá · Del apaga · N próximo alerta · 1–8 raia dos próximos eventos (0 volta ao atleta da
+                  prova; a largada vale para todas)
                 </p>
               </section>
 
@@ -764,6 +790,28 @@ export default function Review({ videoId }: { videoId: string }) {
                         ? "Clique na cabeça do nadador no quadro para dar a posição."
                         : "Sem calibração: a posição na piscina só é calculada depois de calibrar."}
                     </p>
+                  )}
+                  {selected.type !== "start_signal" && (
+                    <label className="inline small">
+                      Raia:
+                      <select
+                        value={selected.lane ?? ""}
+                        onChange={(e) =>
+                          void patch({
+                            update: [
+                              e.target.value
+                                ? { id: selected.id, lane: Number(e.target.value) }
+                                : { id: selected.id, clear_lane: true },
+                            ],
+                          })
+                        }
+                      >
+                        <option value="">Atleta da prova</option>
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                          <option key={n} value={n}>Raia {n}</option>
+                        ))}
+                      </select>
+                    </label>
                   )}
                   <div className="row-actions">
                     <button className="btn small" onClick={() => seek(selected.frame)}>Ir ao quadro</button>
