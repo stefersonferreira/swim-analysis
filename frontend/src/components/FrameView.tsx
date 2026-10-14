@@ -17,6 +17,8 @@ export default function FrameView(props: {
   onClick?: (x: number, y: number) => void;
   cursor?: string;
   children?: React.ReactNode;
+  /** Camada HTML por cima do SVG (sobreposição ao vivo), sem receber cliques. */
+  hud?: React.ReactNode;
 }) {
   const { videoId, width, height, frame, nFrames, playing } = props;
   const svgRef = useRef<SVGSVGElement>(null);
@@ -62,6 +64,7 @@ export default function FrameView(props: {
       >
         {props.children}
       </svg>
+      {props.hud}
     </div>
   );
 }

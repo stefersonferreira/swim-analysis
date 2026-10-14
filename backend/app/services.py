@@ -13,6 +13,7 @@ from swimcv import contracts as c
 from swimcv.analyze import AnalysisFiles, load_homographies
 from swimcv.calibration import grid_lines, solve
 from swimcv.metrics import compute_metrics, resolve_positions
+from swimcv.overlay import build_timeline
 from swimcv.storage import VideoPaths
 
 LOW_CONFIDENCE = 0.35
@@ -117,6 +118,36 @@ def metrics_payload(db: Session, video: Video) -> dict:
         "alerts": alerts,
         "race": race.model_dump(mode="json"),
     }
+
+
+def overlay_timeline(db: Session, video: Video) -> dict:
+    """Linha do tempo da sobreposição (navegador e MP4 usam a mesma)."""
+    import pandas as pd
+
+    race = race_of(video)
+    paths = video_paths(video.id)
+    H = load_homographies(paths)
+    rows = live_events(db, video.id)
+    resolved = resolve_positions([to_contract(e) for e in rows], calibration_of(video), H)
+    report = compute_metrics(race, resolved)
+    traj = None
+    f = AnalysisFiles.of(paths).trajectory
+    if f.exists():
+        df = pd.read_parquet(f)
+        cols = [c for c in ("t", "head_x", "head_img_x", "head_img_y") if c in df]
+        traj = {c: df[c].to_numpy() for c in cols}
+    meta = video.meta or {}
+    return build_timeline(
+        race,
+        resolved,
+        report,
+        title=video.title,
+        athlete=video.athlete,
+        width=meta.get("proxy_width", 1920),
+        height=meta.get("proxy_height", 1080),
+        duration_s=meta.get("duration_s", 0.0),
+        trajectory=traj,
+    )
 
 
 def replace_auto_events(db: Session, video: Video, events: list[c.Event]) -> int:

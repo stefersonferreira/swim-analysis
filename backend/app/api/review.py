@@ -18,6 +18,7 @@ from app.services import (
     calibration_payload,
     event_dict,
     metrics_payload,
+    overlay_timeline,
     save_calibration,
 )
 from swimcv import contracts as c
@@ -170,6 +171,14 @@ def trajectory(video_id: str, db: Session = Depends(get_db)) -> dict:
     df = pd.read_parquet(tr)
     cols = ["frame", "head_x", "confidence", "head_img_x", "head_img_y"]
     return {"frames": df[cols].round(3).to_dict(orient="list")}
+
+
+@router.get("/videos/{video_id}/overlay.json")
+def overlay(video_id: str, db: Session = Depends(get_db)) -> dict:
+    """Balões, relógio e números da sobreposição ao vivo (mesmos do MP4 exportado)."""
+    v = get_video(video_id, db)
+    require_ready(v)
+    return overlay_timeline(db, v)
 
 
 @router.get("/videos/{video_id}/grid/{frame}")

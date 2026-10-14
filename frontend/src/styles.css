@@ -151,3 +151,8 @@ table.points tr.bad td { color: var(--bad); }
 .swimmer circle { fill: none; stroke: #ff4fd8; stroke-width: 3; vector-effect: non-scaling-stroke; }
 .swimmer line { stroke: #ff4fd8; stroke-width: 2; vector-effect: non-scaling-stroke; }
 .swimmer-label { fill: #ff4fd8; }
+
+/* modo apresentação: quadro inteiro na tela, centralizado, sem distorcer a sobreposição */
+.present-box:fullscreen { display: flex; align-items: center; justify-content: center; background: #000; }
+.present-box:fullscreen .frame { width: min(100vw, calc(100vh * var(--ar))); border-radius: 0; }
+.fx-btn { border-color: #6ee7b7; color: #6ee7b7; }

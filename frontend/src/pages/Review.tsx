@@ -5,6 +5,8 @@ import FrameView from "../components/FrameView";
 import MetricsPanel from "../components/MetricsPanel";
 import RaceFields from "../components/RaceFields";
 import Timeline, { nearestFrame } from "../components/Timeline";
+import LiveOverlay from "../overlay/LiveOverlay";
+import type { OverlayTimeline } from "../overlay/state";
 import { EVENT_COLOR, EVENT_KEY, EVENT_LABEL, STROKE_LABEL, fmtTime } from "../labels";
 import type {
   Alert,
@@ -74,6 +76,11 @@ export default function Review({ videoId }: { videoId: string }) {
   const [traj, setTraj] = useState<TrajectoryData | null>(null);
   const [frameGrid, setFrameGrid] = useState<GridLine[] | null>(null);
   const gridCache = useRef(new Map<number, GridLine[]>());
+  // sobreposição ao vivo (Fluxi Swim)
+  const [overlay, setOverlay] = useState<OverlayTimeline | null>(null);
+  const [showOverlay, setShowOverlay] = useState(true);
+  const [present, setPresent] = useState(false);
+  const frameBox = useRef<HTMLDivElement>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const reverseTimer = useRef<number | null>(null);
@@ -116,6 +123,38 @@ export default function Review({ videoId }: { videoId: string }) {
       alive = false;
     };
   }, [videoId, apply]);
+
+  useEffect(() => {
+    if (!video || video.status !== "ready") return;
+    const id = window.setTimeout(() => {
+      api.overlay(videoId).then(setOverlay).catch(() => setOverlay(null));
+    }, 250);
+    return () => window.clearTimeout(id);
+  }, [videoId, video, events]);
+
+  const togglePresent = useCallback(async () => {
+    const el = frameBox.current;
+    if (!present) {
+      setPresent(true);
+      setShowOverlay(true);
+      try {
+        await el?.requestFullscreen?.();
+      } catch {
+        /* sem tela cheia (ex.: navegador bloqueou): fica só o modo limpo */
+      }
+    } else {
+      setPresent(false);
+      if (document.fullscreenElement) await document.exitFullscreen();
+    }
+  }, [present]);
+
+  useEffect(() => {
+    const h = () => {
+      if (!document.fullscreenElement) setPresent(false);
+    };
+    document.addEventListener("fullscreenchange", h);
+    return () => document.removeEventListener("fullscreenchange", h);
+  }, []);
 
   // ---- Análise automática -----------------------------------------------------------
   const analysisActive =
@@ -415,6 +454,7 @@ export default function Review({ videoId }: { videoId: string }) {
     else if (e.key === "]") jumpType(1);
     else if (k === "n") nextAlert();
     else if (k === "g") setShowGrid((s) => !s);
+    else if (k === "v") setShowOverlay((s) => !s);
     else if (e.key === "." && selected) void patch({ update: [{ id: selected.id, frame }] });
     else if (e.key === "Escape") setSelectedId(null);
     else if (mode === "review" && KEY_TO_TYPE[k]) void createEvent(KEY_TO_TYPE[k]);
@@ -514,6 +554,7 @@ export default function Review({ videoId }: { videoId: string }) {
 
       <div className="review-body">
         <div className="stage">
+          <div className="present-box" ref={frameBox} style={{ ["--ar" as string]: `${W / H}` }}>
           <FrameView
             videoId={videoId}
             width={W}
@@ -524,8 +565,13 @@ export default function Review({ videoId }: { videoId: string }) {
             videoRef={videoRef}
             onClick={frameClick}
             cursor={mode === "calibration" || selected ? "crosshair" : "default"}
+            hud={
+              mode === "review" && showOverlay && overlay ? (
+                <LiveOverlay tl={overlay} t={pts[frame] ?? 0} />
+              ) : null
+            }
           >
-            {grid?.map((ln, i) => (
+            {!present && grid?.map((ln, i) => (
               <polyline
                 key={i}
                 points={ln.points.map((p) => p.join(",")).join(" ")}
@@ -542,7 +588,7 @@ export default function Review({ videoId }: { videoId: string }) {
                   </text>
                 </g>
               ))}
-            {mode === "review" &&
+            {mode === "review" && !present &&
               here.map((e) => (
                 <g key={e.id}>
                   <circle cx={e.image_xy![0]} cy={e.image_xy![1]} r={W / 110} fill="none"
@@ -553,7 +599,7 @@ export default function Review({ videoId }: { videoId: string }) {
                   </text>
                 </g>
               ))}
-            {mode === "review" && traj && frame < traj.frame.length && (
+            {mode === "review" && !present && !(showOverlay && overlay) && traj && frame < traj.frame.length && (
               <g className="swimmer" style={{ opacity: 0.4 + 0.6 * traj.confidence[frame] }}>
                 <circle cx={traj.head_img_x[frame]} cy={traj.head_img_y[frame]} r={W / 70} />
                 <line x1={traj.head_img_x[frame] - W / 45} x2={traj.head_img_x[frame] + W / 45}
@@ -565,6 +611,7 @@ export default function Review({ videoId }: { videoId: string }) {
               </g>
             )}
           </FrameView>
+          </div>
 
           <div className="transport">
             <button className="btn small" onClick={() => { pause(); seek(frame - 1); }} title="Quadro anterior (←)">◀︎ 1</button>
@@ -597,6 +644,21 @@ export default function Review({ videoId }: { videoId: string }) {
             <label className="zoom">
               <input type="checkbox" checked={showGrid} onChange={(e) => setShowGrid(e.target.checked)} /> Grade (G)
             </label>
+            {mode === "review" && (
+              <>
+                <label className="zoom">
+                  <input
+                    type="checkbox"
+                    checked={showOverlay}
+                    onChange={(e) => setShowOverlay(e.target.checked)}
+                  />{" "}
+                  Sobreposição (V)
+                </label>
+                <button className="btn small fx-btn" onClick={togglePresent} title="Tela cheia com a sobreposição, sem marcações de edição">
+                  {present ? "Sair da apresentação" : "Modo apresentação"}
+                </button>
+              </>
+            )}
           </div>
 
           <Timeline

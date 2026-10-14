@@ -73,6 +73,12 @@ def main(video: str, out: str = "e2e-auto-shots", points_json: str | None = None
         expect(page.locator(".swimmer circle")).to_be_visible()
         page.wait_for_timeout(800)
         page.screenshot(path=shots / "auto-revisao.png", full_page=True)
+        # sobreposição ao vivo: relógio de prova, fase e braçadas da piscina
+        expect(page.locator(".fx-overlay")).to_be_visible()
+        expect(page.get_by_test_id("fx-phase")).to_have_text("Nadando")
+        assert page.get_by_test_id("fx-clock").inner_text().strip() not in ("", "–")
+        assert int(page.get_by_test_id("fx-strokes").inner_text()) > 0
+        page.locator(".frame").screenshot(path=shots / "auto-sobreposicao.png")
         n_ev = page.locator(".timeline rect[data-ev]").count()
         assert n_ev >= 30, n_ev
         metrics = page.locator(".metrics").inner_text()

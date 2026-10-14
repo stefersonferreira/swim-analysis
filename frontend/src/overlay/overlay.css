@@ -1,0 +1,205 @@
+/* Identidade Fluxi Swim (tokens em brand/README.md). Medidas em cqw = 1% da largura do quadro. */
+@font-face {
+  font-family: "Fredoka";
+  src: url("./fonts/Fredoka-Variable.ttf") format("truetype");
+  font-weight: 300 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Nunito";
+  src: url("./fonts/Nunito-Variable.ttf") format("truetype");
+  font-weight: 200 1000;
+  font-display: swap;
+}
+
+.fx-overlay {
+  --fx-navy: #0b1220;
+  --fx-glass: rgba(10, 16, 32, 0.8);
+  --fx-mint: #6ee7b7;
+  --fx-sky: #7cc4fa;
+  --fx-text: #eaf2ff;
+  --fx-muted: #9fb0cc;
+  --fx-amber: #f5a524;
+  --fx-grad: linear-gradient(90deg, var(--fx-mint), var(--fx-sky));
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  container-type: size;
+  overflow: hidden;
+  font-family: Nunito, system-ui, sans-serif;
+  color: var(--fx-text);
+}
+
+.fx-card {
+  position: absolute;
+  background: var(--fx-glass);
+  border: 0.12cqw solid rgba(110, 231, 183, 0.35);
+  border-radius: 1.3cqw;
+  box-shadow: 0 0 1.6cqw rgba(110, 231, 183, 0.22), 0 0.5cqw 1.5cqw rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+}
+
+.fx-wordmark {
+  font-family: Fredoka, sans-serif;
+  font-weight: 700;
+  font-size: 1.15cqw;
+  letter-spacing: 0.02em;
+  background: var(--fx-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.fx-clock { left: 1.8cqw; top: 1.8cqw; padding: 0.9cqw 1.4cqw 1.1cqw; min-width: 15cqw; }
+.fx-time {
+  font-family: Fredoka, sans-serif;
+  font-weight: 600;
+  font-size: 4.4cqw;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 1.2cqw rgba(110, 231, 183, 0.35);
+}
+.fx-race {
+  display: flex; align-items: center; gap: 0.6cqw;
+  font-weight: 800; font-size: 1.1cqw; color: var(--fx-muted);
+}
+.fx-chip {
+  background: var(--fx-amber); color: var(--fx-navy);
+  border-radius: 99cqw; padding: 0.1cqw 0.7cqw; font-size: 0.95cqw; font-weight: 900;
+}
+.fx-phase {
+  display: inline-block; margin-top: 0.7cqw;
+  padding: 0.25cqw 1cqw; border-radius: 99cqw;
+  background: var(--fx-grad); color: var(--fx-navy);
+  font-family: Fredoka, sans-serif; font-weight: 600; font-size: 1.15cqw;
+  box-shadow: 0 0 1cqw rgba(110, 231, 183, 0.45);
+}
+.fx-phase-underwater { background: linear-gradient(90deg, var(--fx-sky), #a5b4fc); }
+.fx-phase-turn { background: linear-gradient(90deg, #fcd34d, var(--fx-amber)); }
+.fx-phase-finish { background: linear-gradient(90deg, var(--fx-amber), #fb7185); color: #fff; }
+
+.fx-stats {
+  right: 1.8cqw; top: 1.8cqw; padding: 0.6cqw 1.2cqw;
+  display: grid; grid-template-columns: 1fr; gap: 0.1cqw; min-width: 12cqw;
+}
+.fx-stat { padding: 0.45cqw 0; border-bottom: 0.08cqw solid rgba(159, 176, 204, 0.18); }
+.fx-stat:last-child { border-bottom: 0; }
+.fx-stat-label {
+  font-size: 0.85cqw; font-weight: 800; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--fx-mint);
+}
+.fx-stat-value {
+  font-family: Fredoka, sans-serif; font-weight: 600; font-size: 2.2cqw; line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.fx-stat-value small { font-size: 0.5em; color: var(--fx-muted); margin-left: 0.3cqw; font-weight: 500; }
+
+.fx-ring {
+  position: absolute; width: 3.4cqw; height: 3.4cqw; margin: -1.7cqw 0 0 -1.7cqw;
+  border-radius: 50%;
+  border: 0.3cqw solid var(--fx-mint);
+  box-shadow: 0 0 1.4cqw var(--fx-mint), inset 0 0 0.8cqw rgba(110, 231, 183, 0.5);
+  animation: fx-pulse 1.4s ease-in-out infinite;
+}
+@keyframes fx-pulse {
+  0%, 100% { box-shadow: 0 0 1cqw var(--fx-mint), inset 0 0 0.6cqw rgba(110, 231, 183, 0.4); }
+  50% { box-shadow: 0 0 2cqw var(--fx-mint), inset 0 0 1cqw rgba(110, 231, 183, 0.6); }
+}
+
+.fx-balloon {
+  position: absolute; min-width: 9cqw; max-width: 24cqw;
+  padding: 0.7cqw 1.3cqw 0.8cqw; text-align: center;
+  background: var(--fx-glass);
+  border: 0.15cqw solid var(--fx-mint);
+  border-radius: 1.4cqw;
+  box-shadow: 0 0 1.8cqw rgba(110, 231, 183, 0.4), 0 0.6cqw 1.4cqw rgba(0, 0, 0, 0.35);
+  transform-origin: 50% 100%;
+  white-space: nowrap;
+}
+.fx-balloon::after {
+  /* rabinho apontando para o nadador */
+  content: ""; position: absolute; left: 50%; bottom: -1.1cqw; margin-left: -0.9cqw;
+  border: 0.9cqw solid transparent; border-top: 1.1cqw solid var(--fx-mint); border-bottom: 0;
+}
+.fx-balloon.below { transform-origin: 50% 0; }
+.fx-balloon.below::after {
+  bottom: auto; top: -1.1cqw;
+  border-top: 0; border-bottom: 1.1cqw solid var(--fx-mint);
+}
+.fx-balloon.free::after { display: none; }
+.fx-balloon-title {
+  font-weight: 900; font-size: 0.95cqw; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--fx-mint);
+}
+.fx-balloon-value {
+  font-family: Fredoka, sans-serif; font-weight: 600; font-size: 2.6cqw; line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.fx-balloon-sub { font-weight: 700; font-size: 1cqw; color: var(--fx-muted); }
+.fx-balloon.fx-split { border-color: var(--fx-sky); box-shadow: 0 0 1.8cqw rgba(124, 196, 250, 0.45); }
+.fx-balloon.fx-split::after { border-top-color: var(--fx-sky); }
+.fx-balloon.fx-split.below::after { border-bottom-color: var(--fx-sky); }
+.fx-balloon.fx-split .fx-balloon-title { color: var(--fx-sky); }
+.fx-balloon.big { border-color: var(--fx-amber); box-shadow: 0 0 2.4cqw rgba(245, 165, 36, 0.5); }
+.fx-balloon.big::after { border-top-color: var(--fx-amber); }
+.fx-balloon.big.below::after { border-bottom-color: var(--fx-amber); }
+.fx-balloon.big .fx-balloon-title { color: var(--fx-amber); font-size: 1.3cqw; }
+.fx-balloon.big .fx-balloon-value { font-size: 3.6cqw; }
+
+.fx-progress {
+  position: absolute; left: 3cqw; right: 3cqw; bottom: 2.4cqw;
+  display: flex; align-items: center; gap: 1cqw;
+}
+.fx-track {
+  position: relative; flex: 1; height: 0.9cqw; border-radius: 99cqw;
+  background: rgba(10, 16, 32, 0.75); border: 0.1cqw solid rgba(159, 176, 204, 0.3);
+}
+.fx-fill {
+  position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99cqw;
+  background: var(--fx-grad); box-shadow: 0 0 1cqw rgba(110, 231, 183, 0.6);
+}
+.fx-tick {
+  position: absolute; top: -0.5cqw; bottom: -0.5cqw; width: 0.2cqw; margin-left: -0.1cqw;
+  background: rgba(234, 242, 255, 0.55); border-radius: 0.1cqw;
+}
+.fx-tick.passed { background: var(--fx-text); }
+.fx-tick-label {
+  position: absolute; bottom: 1.8cqw; left: 50%; transform: translateX(-50%);
+  font-size: 0.95cqw; font-weight: 800; color: var(--fx-muted); white-space: nowrap;
+  text-shadow: 0 0.1cqw 0.4cqw rgba(0, 0, 0, 0.8);
+}
+.fx-tick-label b { color: var(--fx-sky); font-family: Fredoka, sans-serif; font-weight: 600; }
+.fx-dot {
+  position: absolute; top: 50%; width: 1.8cqw; height: 1.8cqw; margin: -0.9cqw 0 0 -0.9cqw;
+  border-radius: 50%; background: var(--fx-text); border: 0.3cqw solid var(--fx-mint);
+  box-shadow: 0 0 1.2cqw var(--fx-mint);
+}
+.fx-dot span {
+  position: absolute; top: 2.2cqw; left: 50%; transform: translateX(-50%);
+  font-family: Fredoka, sans-serif; font-weight: 600; font-size: 1.05cqw; white-space: nowrap;
+  text-shadow: 0 0.1cqw 0.4cqw rgba(0, 0, 0, 0.8);
+}
+.fx-end {
+  font-family: Fredoka, sans-serif; font-weight: 600; font-size: 1.1cqw; color: var(--fx-muted);
+  text-shadow: 0 0.1cqw 0.4cqw rgba(0, 0, 0, 0.8);
+}
+
+.fx-summary {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  min-width: 34cqw; padding: 2cqw 2.6cqw;
+  background: rgba(11, 18, 32, 0.92); border-radius: 2cqw;
+  border: 0.15cqw solid rgba(110, 231, 183, 0.5);
+  box-shadow: 0 0 3cqw rgba(110, 231, 183, 0.3);
+  animation: fx-in 0.4s ease-out;
+}
+@keyframes fx-in { from { opacity: 0; transform: translate(-50%, -46%); } }
+.fx-summary .fx-wordmark { font-size: 1.6cqw; }
+.fx-summary-title { font-family: Fredoka, sans-serif; font-weight: 600; font-size: 2.6cqw; margin-top: 0.4cqw; }
+.fx-summary-sub { font-weight: 700; font-size: 1.1cqw; color: var(--fx-muted); margin-bottom: 1.2cqw; }
+.fx-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6cqw 2cqw; }
+.fx-summary-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  border-bottom: 0.08cqw solid rgba(159, 176, 204, 0.2); padding-bottom: 0.3cqw;
+}
+.fx-summary-row span { font-weight: 800; font-size: 1.05cqw; color: var(--fx-muted); }
+.fx-summary-row b { font-family: Fredoka, sans-serif; font-weight: 600; font-size: 1.6cqw; }

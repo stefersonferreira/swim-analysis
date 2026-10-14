@@ -99,6 +99,12 @@ def test_calibration_triggers_analysis(client, video):
     assert len(traj["frame"]) > 600
     grid = client.get(f"/api/videos/{vid}/grid/300").json()["lines"]
     assert len(grid) == 9 + 6  # 9 cordas + linhas a cada 5 m (0..25)
+    # sobreposição: balões de 15 m, parcial e chegada, nadador na imagem
+    tl = client.get(f"/api/videos/{vid}/overlay.json").json()
+    kinds = [c["kind"] for c in tl["callouts"]]
+    assert {"15m", "split", "finish"} <= set(kinds), kinds
+    assert tl["clock_end"] == pytest.approx(truth.finish_t - truth.start_t, abs=0.15)
+    assert sum(x is not None for x in tl["track"]["x"]) > 100
 
 
 def test_reanalysis_keeps_corrections(client, video):

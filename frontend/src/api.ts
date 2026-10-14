@@ -9,6 +9,7 @@ import type {
   TrajectoryData,
   Video,
 } from "./types";
+import type { OverlayTimeline } from "./overlay/state";
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
@@ -75,6 +76,7 @@ export const api = {
   analyze: (id: string) => req<Video>(`/api/videos/${id}/analyze`, { method: "POST" }),
   trajectory: (id: string) =>
     req<{ frames: TrajectoryData | [] }>(`/api/videos/${id}/trajectory.json`),
+  overlay: (id: string) => req<OverlayTimeline>(`/api/videos/${id}/overlay.json`),
   grid: (id: string, frame: number) =>
     req<{ lines: GridLine[] }>(`/api/videos/${id}/grid/${frame}`),
 };
