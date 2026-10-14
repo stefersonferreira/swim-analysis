@@ -66,11 +66,12 @@ def main(video: str, out: str = "e2e-auto-shots", points_json: str | None = None
         page.goto(f"{BASE}/videos/{vid}")
         expect(page.get_by_text("Análise automática:")).to_be_visible(timeout=30_000)
         expect(page.locator(".analysis-bar.done")).to_be_visible()
-        # vai para 8 s (nado) e confere o marcador do nadador
+        # vai para 8 s (nado): com a sobreposição ligada, ela substitui o marcador simples
         page.locator("body").click(position={"x": 5, "y": 5})
         for _ in range(24):
             page.keyboard.press("Shift+ArrowRight")
-        expect(page.locator(".swimmer circle")).to_be_visible()
+        expect(page.locator(".fx-overlay")).to_be_visible()
+        expect(page.locator(".swimmer circle")).to_have_count(0)
         page.wait_for_timeout(800)
         page.screenshot(path=shots / "auto-revisao.png", full_page=True)
         # sobreposição ao vivo: relógio de prova, fase e braçadas da piscina

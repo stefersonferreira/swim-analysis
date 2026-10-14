@@ -196,7 +196,7 @@ class Painter:
         ft = self.f("nunito", 1.3 if big else 0.95, 900)
         fv = self.f("fredoka", 3.6 if big else 2.6, 600)
         fs = self.f("nunito", 1.0, 700)
-        title = c["title"].upper()
+        title = c["title"]
         lines = [(title, ft, color, (1.3 if big else 0.95) * 1.35)]
         if c["value"]:
             lines.append((c["value"], fv, TEXT, (3.6 if big else 2.6) * 1.1))
@@ -317,16 +317,16 @@ class Painter:
         if s["phase"] not in (None, "ready"):
             swimming = s["phase"] in ("swim", "underwater", "turn")
             rows = [
-                ("PISCINA", str(s["length"] + 1), f"/{tl['n_lengths']}"),
-                (tl["stroke_word"].upper(), str(s["strokes"]), ""),
-                ("TEMPO DE CICLO", br(s["tempo"]) if s["tempo"] is not None else "–", "s"),
+                ("Piscina", str(s["length"] + 1), f"/{tl['n_lengths']}"),
+                (tl["stroke_word"], str(s["strokes"]), ""),
+                ("Tempo de ciclo", br(s["tempo"]) if s["tempo"] is not None else "–", "s"),
                 (
-                    "VELOCIDADE",
+                    "Velocidade",
                     br(s["speed"]) if swimming and s["speed"] is not None else "–",
                     "m/s",
                 ),
             ]
-            fl = self.f("nunito", 0.85, 800)
+            fl = self.f("nunito", 0.95, 800)
             fv = self.f("fredoka", 2.2, 600)
             fu = self.f("fredoka", 1.1, 500)
             pw = self.px(14)

@@ -85,8 +85,7 @@
 .fx-stat { padding: 0.45cqw 0; border-bottom: 0.08cqw solid rgba(159, 176, 204, 0.18); }
 .fx-stat:last-child { border-bottom: 0; }
 .fx-stat-label {
-  font-size: 0.85cqw; font-weight: 800; letter-spacing: 0.06em;
-  text-transform: uppercase; color: var(--fx-mint);
+  font-size: 0.95cqw; font-weight: 800; color: var(--fx-mint);
 }
 .fx-stat-value {
   font-family: Fredoka, sans-serif; font-weight: 600; font-size: 2.2cqw; line-height: 1.1;
@@ -128,8 +127,7 @@
 }
 .fx-balloon.free::after { display: none; }
 .fx-balloon-title {
-  font-weight: 900; font-size: 0.95cqw; letter-spacing: 0.06em; text-transform: uppercase;
-  color: var(--fx-mint);
+  font-weight: 900; font-size: 1.05cqw; color: var(--fx-mint);
 }
 .fx-balloon-value {
   font-family: Fredoka, sans-serif; font-weight: 600; font-size: 2.6cqw; line-height: 1.1;
