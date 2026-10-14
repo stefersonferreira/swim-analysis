@@ -45,6 +45,7 @@ export interface OverlayTimeline {
   distance: number;
   pool_length: number;
   n_lengths: number;
+  has_swim_data?: boolean;
   stroke_word: string;
   t0: number | null;
   t_finish: number | null;

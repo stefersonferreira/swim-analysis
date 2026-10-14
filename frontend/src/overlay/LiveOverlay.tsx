@@ -34,7 +34,7 @@ export default function LiveOverlay({ tl, t }: { tl: OverlayTimeline; t: number 
       </div>
 
       {/* números da piscina atual */}
-      {s.phase !== "ready" && s.phase != null && (
+      {s.phase !== "ready" && s.phase != null && tl.has_swim_data !== false && (
         <div className="fx-card fx-stats">
           <Stat label="Piscina" value={`${s.length + 1}`} unit={`/${tl.n_lengths}`} />
           <Stat label={tl.stroke_word} value={String(s.strokes)} testid="fx-strokes" />
@@ -54,7 +54,8 @@ export default function LiveOverlay({ tl, t }: { tl: OverlayTimeline; t: number 
         <Balloon key={`${c.kind}-${c.t}`} c={c} tl={tl} head={s.head} stack={s.callouts.length - 1 - i} t={t} />
       ))}
 
-      {/* barra de progresso */}
+      {/* barra de progresso (só com posições: parada em 0 só confundiria) */}
+      {tl.track.d.length > 0 && (
       <div className="fx-progress">
         <div className="fx-track">
           <div className="fx-fill" style={{ width: `${100 * progress}%` }} />
@@ -75,6 +76,7 @@ export default function LiveOverlay({ tl, t }: { tl: OverlayTimeline; t: number 
         </div>
         <span className="fx-end">{tl.distance} m</span>
       </div>
+      )}
 
       {s.showSummary && <Summary tl={tl} />}
     </div>
@@ -113,10 +115,10 @@ function Balloon(props: {
     const yPct = (100 * head[1]) / tl.height;
     below = yPct < 38;
     style = below
-      ? { left: `${x}%`, top: `calc(${yPct}% + 3cqw + ${stack * 9}cqw)` }
-      : { left: `${x}%`, bottom: `calc(${100 - yPct}% + 3cqw + ${stack * 9}cqw)` };
+      ? { left: `${x}%`, top: `calc(${yPct}% + var(--u) * ${3 + stack * 9})` }
+      : { left: `${x}%`, bottom: `calc(${100 - yPct}% + var(--u) * ${3 + stack * 9})` };
   } else {
-    style = { left: "50%", top: `calc(16cqh + ${stack * 9}cqw)` };
+    style = { left: "50%", top: `calc(16cqh + var(--u) * ${stack * 9})` };
   }
   return (
     <div

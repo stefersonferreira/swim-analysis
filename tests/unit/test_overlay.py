@@ -162,3 +162,17 @@ def test_summary_at_end_of_short_video():
     tl = build_timeline(race, evs, compute_metrics(race, evs), duration_s=23.5)
     assert not state_at(tl, 22.9)["show_summary"]
     assert state_at(tl, 23.3)["show_summary"]
+
+
+def test_only_start_marked_does_not_fake_a_phase_or_panel():
+    """Vídeo real de treino só com o apito marcado: 'Saída' some e o painel não aparece."""
+    race, evs = reference_free_50m()
+    start = [e for e in evs if e.type == EventType.START_SIGNAL]
+    tl = build_timeline(race, start, compute_metrics(race, start))
+    assert tl["has_swim_data"] is False
+    t0 = start[0].t
+    assert state_at(tl, t0 + 0.5)["phase"] == "start"
+    assert state_at(tl, t0 + 5.0)["phase"] is None
+    assert state_at(tl, t0 + 5.0)["clock"] is not None  # o relógio continua
+    full = free_timeline()
+    assert full["has_swim_data"] is True

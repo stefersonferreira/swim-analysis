@@ -1,4 +1,7 @@
-/* Identidade Fluxi Swim (tokens em brand/README.md). Medidas em cqw = 1% da largura do quadro. */
+/* Identidade Fluxi Swim (tokens em brand/README.md).
+   Medidas em --u: 1% da largura do quadro no vídeo deitado e 2,2% no vídeo em pé (celular na
+   vertical), para os painéis continuarem legíveis na tela do celular. O MP4 usa a mesma regra
+   (render.py, PORTRAIT_SCALE). */
 @font-face {
   font-family: "Fredoka";
   src: url("./fonts/Fredoka-Variable.ttf") format("truetype");
@@ -33,16 +36,16 @@
 .fx-card {
   position: absolute;
   background: var(--fx-glass);
-  border: 0.12cqw solid rgba(110, 231, 183, 0.35);
-  border-radius: 1.3cqw;
-  box-shadow: 0 0 1.6cqw rgba(110, 231, 183, 0.22), 0 0.5cqw 1.5cqw rgba(0, 0, 0, 0.35);
+  border: calc(var(--u) * 0.12) solid rgba(110, 231, 183, 0.35);
+  border-radius: calc(var(--u) * 1.3);
+  box-shadow: 0 0 calc(var(--u) * 1.6) rgba(110, 231, 183, 0.22), 0 calc(var(--u) * 0.5) calc(var(--u) * 1.5) rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(6px);
 }
 
 .fx-wordmark {
   font-family: Fredoka, sans-serif;
   font-weight: 700;
-  font-size: 1.15cqw;
+  font-size: calc(var(--u) * 1.15);
   letter-spacing: 0.02em;
   background: var(--fx-grad);
   -webkit-background-clip: text;
@@ -50,154 +53,159 @@
   color: transparent;
 }
 
-.fx-clock { left: 1.8cqw; top: 1.8cqw; padding: 0.9cqw 1.4cqw 1.1cqw; min-width: 15cqw; }
+.fx-clock { left: calc(var(--u) * 1.8); top: calc(var(--u) * 1.8); padding: calc(var(--u) * 0.9) calc(var(--u) * 1.4) calc(var(--u) * 1.1); min-width: calc(var(--u) * 15); }
 .fx-time {
   font-family: Fredoka, sans-serif;
   font-weight: 600;
-  font-size: 4.4cqw;
+  font-size: calc(var(--u) * 4.4);
   line-height: 1.05;
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 1.2cqw rgba(110, 231, 183, 0.35);
+  text-shadow: 0 0 calc(var(--u) * 1.2) rgba(110, 231, 183, 0.35);
 }
 .fx-race {
-  display: flex; align-items: center; gap: 0.6cqw;
-  font-weight: 800; font-size: 1.1cqw; color: var(--fx-muted);
+  display: flex; align-items: center; gap: calc(var(--u) * 0.6);
+  font-weight: 800; font-size: calc(var(--u) * 1.1); color: var(--fx-muted);
 }
 .fx-chip {
   background: var(--fx-amber); color: var(--fx-navy);
-  border-radius: 99cqw; padding: 0.1cqw 0.7cqw; font-size: 0.95cqw; font-weight: 900;
+  border-radius: calc(var(--u) * 99); padding: calc(var(--u) * 0.1) calc(var(--u) * 0.7); font-size: calc(var(--u) * 0.95); font-weight: 900;
 }
 .fx-phase {
-  display: inline-block; margin-top: 0.7cqw;
-  padding: 0.25cqw 1cqw; border-radius: 99cqw;
+  display: inline-block; margin-top: calc(var(--u) * 0.7);
+  padding: calc(var(--u) * 0.25) calc(var(--u) * 1); border-radius: calc(var(--u) * 99);
   background: var(--fx-grad); color: var(--fx-navy);
-  font-family: Fredoka, sans-serif; font-weight: 600; font-size: 1.15cqw;
-  box-shadow: 0 0 1cqw rgba(110, 231, 183, 0.45);
+  font-family: Fredoka, sans-serif; font-weight: 600; font-size: calc(var(--u) * 1.15);
+  box-shadow: 0 0 calc(var(--u) * 1) rgba(110, 231, 183, 0.45);
 }
 .fx-phase-underwater { background: linear-gradient(90deg, var(--fx-sky), #a5b4fc); }
 .fx-phase-turn { background: linear-gradient(90deg, #fcd34d, var(--fx-amber)); }
 .fx-phase-finish { background: linear-gradient(90deg, var(--fx-amber), #fb7185); color: #fff; }
 
 .fx-stats {
-  right: 1.8cqw; top: 1.8cqw; padding: 0.6cqw 1.2cqw;
-  display: grid; grid-template-columns: 1fr; gap: 0.1cqw; min-width: 12cqw;
+  right: calc(var(--u) * 1.8); top: calc(var(--u) * 1.8); padding: calc(var(--u) * 0.6) calc(var(--u) * 1.2);
+  display: grid; grid-template-columns: 1fr; gap: calc(var(--u) * 0.1); min-width: calc(var(--u) * 12);
 }
-.fx-stat { padding: 0.45cqw 0; border-bottom: 0.08cqw solid rgba(159, 176, 204, 0.18); }
+.fx-stat { padding: calc(var(--u) * 0.45) 0; border-bottom: calc(var(--u) * 0.08) solid rgba(159, 176, 204, 0.18); }
 .fx-stat:last-child { border-bottom: 0; }
 .fx-stat-label {
-  font-size: 0.95cqw; font-weight: 800; color: var(--fx-mint);
+  font-size: calc(var(--u) * 0.95); font-weight: 800; color: var(--fx-mint);
 }
 .fx-stat-value {
-  font-family: Fredoka, sans-serif; font-weight: 600; font-size: 2.2cqw; line-height: 1.1;
+  font-family: Fredoka, sans-serif; font-weight: 600; font-size: calc(var(--u) * 2.2); line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
-.fx-stat-value small { font-size: 0.5em; color: var(--fx-muted); margin-left: 0.3cqw; font-weight: 500; }
+.fx-stat-value small { font-size: 0.5em; color: var(--fx-muted); margin-left: calc(var(--u) * 0.3); font-weight: 500; }
 
 .fx-ring {
-  position: absolute; width: 3.4cqw; height: 3.4cqw; margin: -1.7cqw 0 0 -1.7cqw;
+  position: absolute; width: calc(var(--u) * 3.4); height: calc(var(--u) * 3.4); margin: -calc(var(--u) * 1.7) 0 0 -calc(var(--u) * 1.7);
   border-radius: 50%;
-  border: 0.3cqw solid var(--fx-mint);
-  box-shadow: 0 0 1.4cqw var(--fx-mint), inset 0 0 0.8cqw rgba(110, 231, 183, 0.5);
+  border: calc(var(--u) * 0.3) solid var(--fx-mint);
+  box-shadow: 0 0 calc(var(--u) * 1.4) var(--fx-mint), inset 0 0 calc(var(--u) * 0.8) rgba(110, 231, 183, 0.5);
   animation: fx-pulse 1.4s ease-in-out infinite;
 }
 @keyframes fx-pulse {
-  0%, 100% { box-shadow: 0 0 1cqw var(--fx-mint), inset 0 0 0.6cqw rgba(110, 231, 183, 0.4); }
-  50% { box-shadow: 0 0 2cqw var(--fx-mint), inset 0 0 1cqw rgba(110, 231, 183, 0.6); }
+  0%, 100% { box-shadow: 0 0 calc(var(--u) * 1) var(--fx-mint), inset 0 0 calc(var(--u) * 0.6) rgba(110, 231, 183, 0.4); }
+  50% { box-shadow: 0 0 calc(var(--u) * 2) var(--fx-mint), inset 0 0 calc(var(--u) * 1) rgba(110, 231, 183, 0.6); }
 }
 
 .fx-balloon {
-  position: absolute; min-width: 9cqw; max-width: 24cqw;
-  padding: 0.7cqw 1.3cqw 0.8cqw; text-align: center;
+  position: absolute; min-width: calc(var(--u) * 9); max-width: calc(var(--u) * 24);
+  padding: calc(var(--u) * 0.7) calc(var(--u) * 1.3) calc(var(--u) * 0.8); text-align: center;
   background: var(--fx-glass);
-  border: 0.15cqw solid var(--fx-mint);
-  border-radius: 1.4cqw;
-  box-shadow: 0 0 1.8cqw rgba(110, 231, 183, 0.4), 0 0.6cqw 1.4cqw rgba(0, 0, 0, 0.35);
+  border: calc(var(--u) * 0.15) solid var(--fx-mint);
+  border-radius: calc(var(--u) * 1.4);
+  box-shadow: 0 0 calc(var(--u) * 1.8) rgba(110, 231, 183, 0.4), 0 calc(var(--u) * 0.6) calc(var(--u) * 1.4) rgba(0, 0, 0, 0.35);
   transform-origin: 50% 100%;
   white-space: nowrap;
 }
 .fx-balloon::after {
   /* rabinho apontando para o nadador */
-  content: ""; position: absolute; left: 50%; bottom: -1.1cqw; margin-left: -0.9cqw;
-  border: 0.9cqw solid transparent; border-top: 1.1cqw solid var(--fx-mint); border-bottom: 0;
+  content: ""; position: absolute; left: 50%; bottom: -calc(var(--u) * 1.1); margin-left: -calc(var(--u) * 0.9);
+  border: calc(var(--u) * 0.9) solid transparent; border-top: calc(var(--u) * 1.1) solid var(--fx-mint); border-bottom: 0;
 }
 .fx-balloon.below { transform-origin: 50% 0; }
 .fx-balloon.below::after {
-  bottom: auto; top: -1.1cqw;
-  border-top: 0; border-bottom: 1.1cqw solid var(--fx-mint);
+  bottom: auto; top: -calc(var(--u) * 1.1);
+  border-top: 0; border-bottom: calc(var(--u) * 1.1) solid var(--fx-mint);
 }
 .fx-balloon.free::after { display: none; }
 .fx-balloon-title {
-  font-weight: 900; font-size: 1.05cqw; color: var(--fx-mint);
+  font-weight: 900; font-size: calc(var(--u) * 1.05); color: var(--fx-mint);
 }
 .fx-balloon-value {
-  font-family: Fredoka, sans-serif; font-weight: 600; font-size: 2.6cqw; line-height: 1.1;
+  font-family: Fredoka, sans-serif; font-weight: 600; font-size: calc(var(--u) * 2.6); line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
-.fx-balloon-sub { font-weight: 700; font-size: 1cqw; color: var(--fx-muted); }
-.fx-balloon.fx-split { border-color: var(--fx-sky); box-shadow: 0 0 1.8cqw rgba(124, 196, 250, 0.45); }
+.fx-balloon-sub { font-weight: 700; font-size: calc(var(--u) * 1); color: var(--fx-muted); }
+.fx-balloon.fx-split { border-color: var(--fx-sky); box-shadow: 0 0 calc(var(--u) * 1.8) rgba(124, 196, 250, 0.45); }
 .fx-balloon.fx-split::after { border-top-color: var(--fx-sky); }
 .fx-balloon.fx-split.below::after { border-bottom-color: var(--fx-sky); }
 .fx-balloon.fx-split .fx-balloon-title { color: var(--fx-sky); }
-.fx-balloon.big { border-color: var(--fx-amber); box-shadow: 0 0 2.4cqw rgba(245, 165, 36, 0.5); }
+.fx-balloon.big { border-color: var(--fx-amber); box-shadow: 0 0 calc(var(--u) * 2.4) rgba(245, 165, 36, 0.5); }
 .fx-balloon.big::after { border-top-color: var(--fx-amber); }
 .fx-balloon.big.below::after { border-bottom-color: var(--fx-amber); }
-.fx-balloon.big .fx-balloon-title { color: var(--fx-amber); font-size: 1.3cqw; }
-.fx-balloon.big .fx-balloon-value { font-size: 3.6cqw; }
+.fx-balloon.big .fx-balloon-title { color: var(--fx-amber); font-size: calc(var(--u) * 1.3); }
+.fx-balloon.big .fx-balloon-value { font-size: calc(var(--u) * 3.6); }
 
 .fx-progress {
-  position: absolute; left: 3cqw; right: 3cqw; bottom: 3.4cqw;
-  display: flex; align-items: center; gap: 1cqw;
+  position: absolute; left: calc(var(--u) * 3); right: calc(var(--u) * 3); bottom: calc(var(--u) * 3.4);
+  display: flex; align-items: center; gap: calc(var(--u) * 1);
 }
 .fx-track {
-  position: relative; flex: 1; height: 0.9cqw; border-radius: 99cqw;
-  background: rgba(10, 16, 32, 0.75); border: 0.1cqw solid rgba(159, 176, 204, 0.3);
+  position: relative; flex: 1; height: calc(var(--u) * 0.9); border-radius: calc(var(--u) * 99);
+  background: rgba(10, 16, 32, 0.75); border: calc(var(--u) * 0.1) solid rgba(159, 176, 204, 0.3);
 }
 .fx-fill {
-  position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99cqw;
-  background: var(--fx-grad); box-shadow: 0 0 1cqw rgba(110, 231, 183, 0.6);
+  position: absolute; left: 0; top: 0; bottom: 0; border-radius: calc(var(--u) * 99);
+  background: var(--fx-grad); box-shadow: 0 0 calc(var(--u) * 1) rgba(110, 231, 183, 0.6);
 }
 .fx-tick {
-  position: absolute; top: -0.5cqw; bottom: -0.5cqw; width: 0.2cqw; margin-left: -0.1cqw;
-  background: rgba(234, 242, 255, 0.55); border-radius: 0.1cqw;
+  position: absolute; top: -calc(var(--u) * 0.5); bottom: -calc(var(--u) * 0.5); width: calc(var(--u) * 0.2); margin-left: -calc(var(--u) * 0.1);
+  background: rgba(234, 242, 255, 0.55); border-radius: calc(var(--u) * 0.1);
 }
 .fx-tick.passed { background: var(--fx-text); }
 .fx-tick-label {
-  position: absolute; bottom: 1.8cqw; left: 50%; transform: translateX(-50%);
-  font-size: 0.95cqw; font-weight: 800; color: var(--fx-muted); white-space: nowrap;
-  text-shadow: 0 0.1cqw 0.4cqw rgba(0, 0, 0, 0.8);
+  position: absolute; bottom: calc(var(--u) * 1.8); left: 50%; transform: translateX(-50%);
+  font-size: calc(var(--u) * 0.95); font-weight: 800; color: var(--fx-muted); white-space: nowrap;
+  text-shadow: 0 calc(var(--u) * 0.1) calc(var(--u) * 0.4) rgba(0, 0, 0, 0.8);
 }
 .fx-tick-label b { color: var(--fx-sky); font-family: Fredoka, sans-serif; font-weight: 600; }
 .fx-dot {
-  position: absolute; top: 50%; width: 1.8cqw; height: 1.8cqw; margin: -0.9cqw 0 0 -0.9cqw;
-  border-radius: 50%; background: var(--fx-text); border: 0.3cqw solid var(--fx-mint);
-  box-shadow: 0 0 1.2cqw var(--fx-mint);
+  position: absolute; top: 50%; width: calc(var(--u) * 1.8); height: calc(var(--u) * 1.8); margin: -calc(var(--u) * 0.9) 0 0 -calc(var(--u) * 0.9);
+  border-radius: 50%; background: var(--fx-text); border: calc(var(--u) * 0.3) solid var(--fx-mint);
+  box-shadow: 0 0 calc(var(--u) * 1.2) var(--fx-mint);
 }
 .fx-dot span {
-  position: absolute; top: 2.2cqw; left: 50%; transform: translateX(-50%);
-  font-family: Fredoka, sans-serif; font-weight: 600; font-size: 1.05cqw; white-space: nowrap;
-  text-shadow: 0 0.1cqw 0.4cqw rgba(0, 0, 0, 0.8);
+  position: absolute; top: calc(var(--u) * 2.2); left: 50%; transform: translateX(-50%);
+  font-family: Fredoka, sans-serif; font-weight: 600; font-size: calc(var(--u) * 1.05); white-space: nowrap;
+  text-shadow: 0 calc(var(--u) * 0.1) calc(var(--u) * 0.4) rgba(0, 0, 0, 0.8);
 }
 .fx-end {
-  font-family: Fredoka, sans-serif; font-weight: 600; font-size: 1.1cqw; color: var(--fx-muted);
-  text-shadow: 0 0.1cqw 0.4cqw rgba(0, 0, 0, 0.8);
+  font-family: Fredoka, sans-serif; font-weight: 600; font-size: calc(var(--u) * 1.1); color: var(--fx-muted);
+  text-shadow: 0 calc(var(--u) * 0.1) calc(var(--u) * 0.4) rgba(0, 0, 0, 0.8);
 }
 
 .fx-summary {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  min-width: 34cqw; padding: 2cqw 2.6cqw;
-  background: rgba(11, 18, 32, 0.92); border-radius: 2cqw;
-  border: 0.15cqw solid rgba(110, 231, 183, 0.5);
-  box-shadow: 0 0 3cqw rgba(110, 231, 183, 0.3);
+  min-width: calc(var(--u) * 34); padding: calc(var(--u) * 2) calc(var(--u) * 2.6);
+  background: rgba(11, 18, 32, 0.92); border-radius: calc(var(--u) * 2);
+  border: calc(var(--u) * 0.15) solid rgba(110, 231, 183, 0.5);
+  box-shadow: 0 0 calc(var(--u) * 3) rgba(110, 231, 183, 0.3);
   animation: fx-in 0.4s ease-out;
 }
 @keyframes fx-in { from { opacity: 0; transform: translate(-50%, -46%); } }
-.fx-summary .fx-wordmark { font-size: 1.6cqw; }
-.fx-summary-title { font-family: Fredoka, sans-serif; font-weight: 600; font-size: 2.6cqw; margin-top: 0.4cqw; }
-.fx-summary-sub { font-weight: 700; font-size: 1.1cqw; color: var(--fx-muted); margin-bottom: 1.2cqw; }
-.fx-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6cqw 2cqw; }
+.fx-summary .fx-wordmark { font-size: calc(var(--u) * 1.6); }
+.fx-summary-title { font-family: Fredoka, sans-serif; font-weight: 600; font-size: calc(var(--u) * 2.6); margin-top: calc(var(--u) * 0.4); }
+.fx-summary-sub { font-weight: 700; font-size: calc(var(--u) * 1.1); color: var(--fx-muted); margin-bottom: calc(var(--u) * 1.2); }
+.fx-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--u) * 0.6) calc(var(--u) * 2); }
 .fx-summary-row {
   display: flex; justify-content: space-between; align-items: baseline;
-  border-bottom: 0.08cqw solid rgba(159, 176, 204, 0.2); padding-bottom: 0.3cqw;
+  border-bottom: calc(var(--u) * 0.08) solid rgba(159, 176, 204, 0.2); padding-bottom: calc(var(--u) * 0.3);
 }
-.fx-summary-row span { font-weight: 800; font-size: 1.05cqw; color: var(--fx-muted); }
-.fx-summary-row b { font-family: Fredoka, sans-serif; font-weight: 600; font-size: 1.6cqw; }
+.fx-summary-row span { font-weight: 800; font-size: calc(var(--u) * 1.05); color: var(--fx-muted); }
+.fx-summary-row b { font-family: Fredoka, sans-serif; font-weight: 600; font-size: calc(var(--u) * 1.6); }
+
+.fx-overlay * { --u: 1cqw; }
+@container (orientation: portrait) {
+  .fx-overlay * { --u: 2.2cqw; }
+}

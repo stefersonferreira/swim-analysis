@@ -69,3 +69,20 @@ def test_render_mp4_with_audio_and_end_card(tmp_path):
         assert len(c.streams.audio) == 1
     assert n == 90 + int(END_HOLD_S * 30)
     assert seen[-1] == 1.0
+
+
+def test_portrait_video_uses_bigger_panels():
+    """Celular em pé: painéis em 2,2% da largura por unidade, como o --u da tela."""
+    from swimcv.overlay.render import PORTRAIT_SCALE
+
+    tl = timeline()
+    land = Painter(tl, 1280, 720)
+    port = Painter(tl, 720, 1280)
+    assert port.u == pytest.approx(7.2 * PORTRAIT_SCALE)
+    assert land.u == pytest.approx(12.8)
+    frame = Image.new("RGB", (720, 1280), (40, 120, 180))
+    out = np.asarray(port.draw(frame, 8.0), int)
+    diff = np.abs(out - np.asarray(frame, int)).sum(axis=2) > 30
+    # cartão do relógio ocupa uma faixa larga no alto, sem sair do quadro
+    assert diff[30:150, 30:250].mean() > 0.4
+    assert not diff[:, -2:].all()

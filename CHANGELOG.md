@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.1 — 2026-10-14
+
+Ajustes a partir do primeiro vídeo real de treino (celular em pé, apito, saídas escalonadas).
+
+- Largada: vale o último sinal da sequência de saída (apito longo → apito curto, apitos →
+  bipe); gritos no meio da prova ficam de fora. Antes, um treino com apito pegava a voz do técnico.
+- Sobreposição em vídeo em pé: painéis 2,2x maiores (tela e MP4), legíveis no celular.
+- Sem eventos de nado, a fase "Saída" some após 2 s e o painel e a barra de progresso não
+  aparecem (antes mostravam zeros e uma barra parada).
+
 ## 0.3.0 — 2026-10-13
 
 Sobreposição com a identidade Fluxi Swim (entrega 12).

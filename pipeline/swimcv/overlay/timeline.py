@@ -27,6 +27,7 @@ TURN_BEFORE_S = 1.0  # a virada começa um pouco antes do toque
 TRACK_STEP_S = 1 / 15  # amostragem da trajetória enviada ao navegador
 SPEED_WINDOW_S = 1.0
 SUMMARY_TAIL_S = 0.3  # vídeo curto: resumo nos últimos instantes
+START_MAX_S = 2.0  # sem entrada nem pés fora marcados, "Saída" some depois disso
 
 STROKE_LABEL = {Stroke.FREESTYLE: "Livre", Stroke.BREASTSTROKE: "Peito"}
 PHASE_LABEL = {
@@ -190,7 +191,10 @@ def build_timeline(
     feet_off = lengths[0].first(E.FEET_OFF)
     entry = lengths[0].first(E.ENTRY)
     phase("ready", -1e9, t0 if t0 is not None else None, 0)
-    phase("start", t0, entry.t if entry else (feet_off.t if feet_off else None), 0)
+    start_end = entry.t if entry else (feet_off.t if feet_off else None)
+    if start_end is None and t0 is not None:
+        start_end = t0 + START_MAX_S  # nada marcado depois da largada: não fingir uma fase
+    phase("start", t0, start_end, 0)
     for ln in lengths:
         k = ln.index
         bo = ln.first(E.BREAKOUT)
@@ -349,6 +353,8 @@ def build_timeline(
         "pool_length": L,
         "n_lengths": race.n_lengths,
         "stroke_word": stroke_word,
+        # sem braçadas nem velocidade, o painel só mostraria zeros e traços: fica escondido
+        "has_swim_data": bool(n_strokes) or any(v is not None for v in speeds),
         "t0": t0,
         "t_finish": finish.t if finish is not None else None,
         "clock_end": clock_end,

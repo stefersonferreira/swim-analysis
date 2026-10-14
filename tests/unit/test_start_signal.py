@@ -52,3 +52,27 @@ def test_horn_style_start():
 def test_silence_gives_nothing():
     assert find_start_candidates(np.zeros(RATE * 3, np.float32), RATE) == []
     assert confidence([]) == 0.0
+
+
+def harmonic(f, dur, amp=0.4, rate=RATE):
+    """Voz/buzina grave: fundamental com harmônicos."""
+    return sum(tone(f * k, dur, amp / k, rate) for k in (1, 2, 3))
+
+
+def test_training_whistle_start_is_the_last_strong_signal():
+    """Treino real (vídeo IMG_6612): apito longo, voz do técnico, apito curto de saída."""
+    rng = np.random.default_rng(1)
+    x = (np.convolve(rng.normal(0, 1, 20 * RATE), np.ones(30) / 30, "same") * 0.1).astype(
+        np.float32
+    )
+    for at, sig in (
+        (2.0, tone(3500, 1.0, 0.5)),
+        (4.0, harmonic(650, 0.25)),
+        (6.3, tone(3600, 0.5, 0.5)),
+        (15.0, harmonic(650, 0.25)),  # técnico gritando no meio da prova
+    ):
+        s = int(at * RATE)
+        x[s : s + len(sig)] += sig
+    cands = find_start_candidates(x, RATE)
+    assert cands[0].t == pytest.approx(6.3, abs=0.012)
+    assert 0.35 < confidence(cands) <= 0.8  # escolha pela ordem: pede conferência

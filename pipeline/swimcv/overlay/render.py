@@ -25,6 +25,7 @@ from swimcv.overlay.timeline import CALLOUT_S, br, clock_text, state_at
 
 FONTS = Path(__file__).resolve().parents[3] / "brand" / "fonts"
 END_HOLD_S = 4.0
+PORTRAIT_SCALE = 2.2  # mesmo valor de --u no vídeo em pé (overlay.css)
 
 NAVY = (11, 18, 32)
 GLASS = (10, 16, 32, 204)
@@ -80,7 +81,9 @@ class Painter:
     def __init__(self, tl: dict, width: int, height: int) -> None:
         self.tl = tl
         self.W, self.H = width, height
-        self.u = width / 100.0
+        self.pw = width / 100.0  # 1% da largura: posições horizontais
+        # unidade de tamanho: como --u na tela (overlay.css); maior no vídeo em pé
+        self.u = self.pw * (PORTRAIT_SCALE if height > width else 1.0)
         self.sx = width / tl["width"]  # trajetória em pixels do proxy
         self.sy = height / tl["height"]
         self._cache: dict = {}
@@ -314,7 +317,7 @@ class Painter:
             self.pill(img, cx, y + self.px(0.9), s["phase_label"], fpill, grad, fg)
 
         # painel da piscina
-        if s["phase"] not in (None, "ready"):
+        if s["phase"] not in (None, "ready") and tl.get("has_swim_data", True):
             swimming = s["phase"] in ("swim", "underwater", "turn")
             rows = [
                 ("Piscina", str(s["length"] + 1), f"/{tl['n_lengths']}"),
@@ -357,7 +360,8 @@ class Painter:
         for i, c in enumerate(s["callouts"]):
             self._balloon(img, c, head, n - 1 - i, t)
 
-        self._progress(img, s)
+        if tl.get("track", {}).get("d"):  # sem posições, uma barra parada em 0 só confunde
+            self._progress(img, s)
         if s["show_summary"]:
             self._summary(img)
         return img.convert("RGB")
@@ -369,10 +373,10 @@ class Painter:
         free = head is None
         below = False
         if head is not None:
-            x = min(84.0, max(16.0, 100 * head[0] / self.W)) * self.u
+            x = min(84.0, max(16.0, 100 * head[0] / self.W)) * self.pw
             below = 100 * head[1] / self.H < 38
         else:
-            x = 50 * self.u
+            x = 50 * self.pw
         sp, acx, ay, top, h = self.balloon_sprite(c, below, free)
         if pop != 1.0:
             sp = sp.resize(

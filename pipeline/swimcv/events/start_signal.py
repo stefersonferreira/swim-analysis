@@ -1,8 +1,9 @@
 """Largada automática pelo áudio (módulo 7, parte 1).
 
-O sinal eletrônico de largada é um tom (bipe ou buzina) curto que vem depois de alguns
-segundos de relativo silêncio ("às suas marcas"). Os apitos do árbitro também são tons, mas
-vêm antes e costumam ser longos. A pontuação de cada candidato combina:
+Em competição, a largada é um tom eletrônico (bipe ou buzina) curto depois de apitos longos do
+árbitro e de alguns segundos de relativo silêncio ("às suas marcas"). Em treino, costuma ser um
+apito longo ("subam") e depois um apito curto. Nos dois casos a largada é o último sinal forte
+da sequência (order_candidates). A pontuação de cada candidato combina:
 
 - subida brusca de energia na faixa 500–4.000 Hz;
 - tonalidade (espectro concentrado num pico estável, não ruído de torcida);
@@ -24,6 +25,8 @@ HOP_S = 0.005
 WIN = 2048
 BAND_HZ = (500.0, 4000.0)
 SEARCH_S = 25.0
+STRONG_FRACTION = 0.6
+SEQUENCE_GAP_S = 6.0
 
 
 @dataclass
@@ -124,7 +127,7 @@ def find_start_candidates(x: np.ndarray, rate: int, top: int = 3) -> list[StartC
         quiet = float(np.median(rise[max(0, a - w) : a])) if a > 0 else 0.0
         r = float(np.percentile(rise[a:b], 80))
         score = r * float(np.mean(tonal[a:b])) - 0.5 * max(quiet, 0.0)
-        # bipes longos (> 0,6 s) parecem apito de árbitro: penaliza
+        # tons longos (> 0,6 s) costumam ser o apito de "subam no bloco", não a largada
         if dur > 0.6:
             score *= 0.6
         # o início exato: primeiro quadro de STFT acima de metade da subida
@@ -134,8 +137,33 @@ def find_start_candidates(x: np.ndarray, rate: int, top: int = 3) -> list[StartC
         coarse = onset * dt + (WIN / 2) / rate  # centro da janela STFT
         t = refine_onset(x, rate, coarse, f)
         cands.append(StartCandidate(t=t, score=score, duration_s=dur, freq_hz=f, rise_db=r))
-    cands.sort(key=lambda c: c.score, reverse=True)
-    return cands[:top]
+    return order_candidates(cands)[:top]
+
+
+def order_candidates(cands: list[StartCandidate]) -> list[StartCandidate]:
+    """Põe primeiro o sinal que vale como largada.
+
+    A largada é o último sinal da sequência de saída: numa competição, apitos longos do árbitro
+    e depois o bipe; num treino, apito longo ("subam") e depois o apito curto ou a voz de saída.
+    A sequência começa no sinal mais forte e segue pelos sinais fortes (pelo menos
+    STRONG_FRACTION da melhor pontuação) que vêm a no máximo SEQUENCE_GAP_S do anterior. Gritos
+    no meio da prova, bem depois, ficam de fora. Os demais seguem por pontuação.
+    """
+    if not cands:
+        return []
+    best = max(cands, key=lambda c: c.score)
+    chosen = best
+    if best.score > 0:
+        strong = sorted(
+            (c for c in cands if c.score >= STRONG_FRACTION * best.score and c.t > best.t),
+            key=lambda c: c.t,
+        )
+        for c in strong:
+            if c.t - chosen.t > SEQUENCE_GAP_S:
+                break
+            chosen = c
+    rest = sorted((c for c in cands if c is not chosen), key=lambda c: c.score, reverse=True)
+    return [chosen, *rest]
 
 
 def detect_start(wav_path: Path) -> list[StartCandidate]:
@@ -146,12 +174,20 @@ def detect_start(wav_path: Path) -> list[StartCandidate]:
 
 
 def confidence(cands: list[StartCandidate]) -> float:
-    """Confiança 0..1: alta quando o melhor candidato se destaca do segundo."""
+    """Confiança 0..1 do candidato escolhido (o primeiro da lista).
+
+    Alta quando ele é o único sinal forte; média quando houve vários sinais fortes e a escolha
+    foi pela ordem (último da sequência), o que pede conferência mas não é dúvida grave.
+    """
     if not cands:
         return 0.0
-    best = cands[0].score
+    chosen = cands[0]
+    best = max(c.score for c in cands)
     if best <= 0:
         return 0.2
-    second = cands[1].score if len(cands) > 1 else 0.0
-    margin = (best - second) / best
-    return float(np.clip(0.5 + 0.5 * margin, 0.0, 0.99))
+    others = [c.score for c in cands[1:]]
+    second = max(others) if others else 0.0
+    if second < STRONG_FRACTION * best:
+        margin = (chosen.score - second) / chosen.score
+        return float(np.clip(0.5 + 0.5 * margin, 0.0, 0.99))
+    return float(np.clip(0.45 + 0.2 * chosen.score / best, 0.0, 0.8))
