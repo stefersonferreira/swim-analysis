@@ -41,6 +41,7 @@ COPY pyproject.toml uv.lock README.md ./
 RUN uv sync --frozen --no-dev --no-install-project
 COPY alembic.ini ./
 COPY pipeline ./pipeline
+COPY brand ./brand
 COPY backend ./backend
 RUN uv sync --frozen --no-dev
 
@@ -84,6 +85,7 @@ RUN uv python install \
  && uv sync --frozen --no-dev --no-install-project
 COPY alembic.ini ./
 COPY pipeline ./pipeline
+COPY brand ./brand
 COPY backend ./backend
 RUN uv sync --frozen --no-dev
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \

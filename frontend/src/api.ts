@@ -74,6 +74,7 @@ export const api = {
     }),
   worker: () => req<Record<string, unknown>>("/api/system/worker"),
   analyze: (id: string) => req<Video>(`/api/videos/${id}/analyze`, { method: "POST" }),
+  exportVideo: (id: string) => req<Video>(`/api/videos/${id}/export`, { method: "POST" }),
   trajectory: (id: string) =>
     req<{ frames: TrajectoryData | [] }>(`/api/videos/${id}/trajectory.json`),
   overlay: (id: string) => req<OverlayTimeline>(`/api/videos/${id}/overlay.json`),

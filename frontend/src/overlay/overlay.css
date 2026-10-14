@@ -147,7 +147,7 @@
 .fx-balloon.big .fx-balloon-value { font-size: 3.6cqw; }
 
 .fx-progress {
-  position: absolute; left: 3cqw; right: 3cqw; bottom: 2.4cqw;
+  position: absolute; left: 3cqw; right: 3cqw; bottom: 3.4cqw;
   display: flex; align-items: center; gap: 1cqw;
 }
 .fx-track {

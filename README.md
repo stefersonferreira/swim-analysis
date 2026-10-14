@@ -68,6 +68,10 @@ Vídeos e resultados ficam em `./data`; o banco, no volume `pgdata`.
 4. **Revisão** (aba): confira os alertas e corrija o que precisar pelo teclado. Para criar um
    evento, marque no quadro certo e clique na cabeça do nadador para dar a posição. O que você
    corrige nunca é sobrescrito por uma nova análise.
+5. **Sobreposição e vídeo:** durante a reprodução aparecem relógio de prova, fase, braçadas,
+   tempo de ciclo, velocidade, balões que seguem o nadador (breakout, 15 m, parciais, chegada)
+   e a barra de progresso. "Modo apresentação" abre em tela cheia sem as marcações de edição.
+   "Gerar vídeo" grava um MP4 com o mesmo visual e um resumo no fim, para enviar ao atleta.
 
 | Tecla | Ação |
 | --- | --- |
@@ -80,6 +84,7 @@ Vídeos e resultados ficam em `./data`; o banco, no volume `pgdata`.
 | [ / ] | Evento anterior / próximo do mesmo tipo |
 | . | Move o evento selecionado para o quadro atual |
 | Delete · Esc · N · G | Apagar · desmarcar · próximo alerta · grade da piscina |
+| V | Liga/desliga a sobreposição |
 
 As métricas são recalculadas a cada mudança. “—” significa não medido (o motivo aparece ao
 passar o mouse). Os tempos vêm sempre do relógio real de cada quadro (vídeos de celular têm

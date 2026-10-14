@@ -43,6 +43,11 @@ class Video(Base):
     analysis_status: Mapped[str] = mapped_column(String(20), default="idle", server_default="idle")
     analysis_notes: Mapped[list | None] = mapped_column(JSON)
     analyzed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # MP4 com a sobreposição: idle | queued | running | done | failed
+    export_status: Mapped[str] = mapped_column(String(20), default="idle", server_default="idle")
+    export_progress: Mapped[float | None] = mapped_column(Float)
+    export_error: Mapped[str | None] = mapped_column(Text)
+    exported_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, onupdate=_now

@@ -13,6 +13,7 @@ from app.services import (
     calibration_of,
     has_start_signal,
     mark_analyzed,
+    overlay_timeline,
     race_of,
     replace_auto_events,
 )
@@ -21,6 +22,7 @@ from swimcv.analyze import AnalysisError, detect_start_signal
 from swimcv.analyze import run as run_analysis
 from swimcv.ingest import IngestError, ingest_video
 from swimcv.ingest.frames import read_frame_table
+from swimcv.overlay.render import render_mp4
 from swimcv.storage import VideoPaths
 
 settings = get_settings()
@@ -120,6 +122,57 @@ def analyze(video_id: str) -> str:
             raise
         n = replace_auto_events(db, video, events)
         mark_analyzed(video, "done", [f"{n} eventos automáticos gerados.", *notes])
+        db.commit()
+        return "done"
+    finally:
+        db.close()
+
+
+@celery_app.task(name="swim.export")
+def export(video_id: str) -> str:
+    """MP4 com a sobreposição Fluxi Swim gravada (mesma linha do tempo da tela)."""
+    from datetime import UTC, datetime
+
+    from app.api.videos import export_path
+
+    db = new_session()
+    try:
+        video = db.get(Video, video_id)
+        if video is None or video.status != "ready":
+            return "not_ready"
+        video.export_status, video.export_progress, video.export_error = "running", 0.0, None
+        db.commit()
+        paths = VideoPaths.for_video(get_settings().data_dir, video_id)
+        tl = overlay_timeline(db, video)
+        pts = read_frame_table(paths.frames)["pts"].to_numpy()
+        meta = video.meta or {}
+        last = [0.0]
+
+        def progress(f: float) -> None:
+            if f - last[0] >= 0.05 or f >= 1.0:
+                last[0] = f
+                video.export_progress = round(f, 3)
+                db.commit()
+
+        try:
+            render_mp4(
+                paths.proxy,
+                pts,
+                tl,
+                export_path(video_id),
+                audio=paths.audio if meta.get("has_audio") else None,
+                fps=meta.get("fps_nominal") or meta.get("fps_measured") or 30.0,
+                progress=progress,
+            )
+        except Exception as exc:
+            video.export_status, video.export_error = (
+                "failed",
+                f"Falha ao gerar o vídeo: {exc}"[:2000],
+            )
+            db.commit()
+            raise
+        video.export_status, video.export_progress = "done", 1.0
+        video.exported_at = datetime.now(UTC)
         db.commit()
         return "done"
     finally:

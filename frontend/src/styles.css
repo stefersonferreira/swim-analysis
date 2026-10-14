@@ -156,3 +156,14 @@ table.points tr.bad td { color: var(--bad); }
 .present-box:fullscreen { display: flex; align-items: center; justify-content: center; background: #000; }
 .present-box:fullscreen .frame { width: min(100vw, calc(100vh * var(--ar))); border-radius: 0; }
 .fx-btn { border-color: #6ee7b7; color: #6ee7b7; }
+
+.export-bar {
+  display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  padding: 8px 14px; margin-bottom: 12px; border-radius: 8px;
+  border: 1px solid rgba(110, 231, 183, 0.35); background: linear-gradient(90deg, rgba(110, 231, 183, 0.08), rgba(124, 196, 250, 0.06));
+}
+.export-bar.failed { border-color: var(--bad); }
+.export-actions { display: flex; gap: 8px; }
+.fx-word { background: linear-gradient(90deg, #6ee7b7, #7cc4fa); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.export-progress { height: 6px; margin-top: 6px; border-radius: 3px; background: var(--panel-2); overflow: hidden; max-width: 420px; }
+.export-progress div { height: 100%; background: linear-gradient(90deg, #6ee7b7, #7cc4fa); transition: width 0.4s; }

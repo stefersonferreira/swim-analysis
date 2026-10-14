@@ -42,7 +42,7 @@ a ordem de construção e os critérios de pronto estão lá e na tabela abaixo.
 | 9 | Braçadas no crawl | Exata em 85% das piscinas do treino | Feito no sintético; falta validar em vídeos reais |
 | 10 | Braçadas no peito | Exata em 85% das piscinas do treino | |
 | 11 | Alertas e recálculo ao corrigir | Corrigir um evento atualiza as métricas em < 1 s | Parcial (recálculo e alertas básicos feitos) |
-| 12 | Vídeo com sobreposição | Prova de referência renderizada com todos os elementos | |
+| 12 | Vídeo com sobreposição | Prova de referência renderizada com todos os elementos | Feito (sobreposição ao vivo + MP4, identidade Fluxi Swim) |
 | 13 | Relatório web e PDF | PDF idêntico à página, gerado no contêiner | |
 | 14 | Rascunho de feedback por IA | Rascunho no modelo de seções, só com métricas aprovadas | |
 | 15 | Validação | Critérios de aceite no conjunto de teste | |
@@ -59,6 +59,9 @@ pipeline/swimcv/camera/       movimento da câmera e homografia por quadro (entr
 pipeline/swimcv/tracking/     rastreamento do nadador na raia (faixa retificada + Viterbi)
 pipeline/swimcv/events/       largada pelo áudio e eventos automáticos
 pipeline/swimcv/analyze.py    orquestra a análise automática (usada pelo worker)
+pipeline/swimcv/overlay/      linha do tempo da sobreposição (state_at) e MP4 (render.py)
+frontend/src/overlay/         sobreposição ao vivo; state.ts espelha state_at (teste de paridade)
+brand/                        identidade Fluxi Swim: cores e fontes (OFL)
 backend/app/                  FastAPI, banco (SQLAlchemy + Alembic), worker Celery
 frontend/src/                 React + Vite: lista, upload, revisão, calibração
 tests/                        unit, integration (PostgreSQL), e2e (navegador), golden

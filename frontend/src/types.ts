@@ -48,6 +48,10 @@ export interface Video {
   analysis_status: "idle" | "queued" | "running" | "done" | "failed";
   analysis_notes: string[];
   analyzed_at: string | null;
+  export_status: "idle" | "queued" | "running" | "done" | "failed";
+  export_progress: number | null;
+  export_error: string | null;
+  exported_at: string | null;
   created_at: string | null;
 }
 

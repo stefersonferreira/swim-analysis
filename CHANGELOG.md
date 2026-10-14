@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 — 2026-10-13
+
+Sobreposição com a identidade Fluxi Swim (entrega 12).
+
+- Linha do tempo única (`/api/videos/{id}/overlay.json`): fases, braçadas da piscina atual,
+  tempo de ciclo corrente, velocidade, distância percorrida, balões e resumo.
+- Sobreposição ao vivo na revisão (tecla V) e modo apresentação em tela cheia.
+- "Gerar vídeo": MP4 (H.264 + AAC) com a mesma sobreposição e cartão de resumo no fim,
+  gerado no worker com progresso na tela.
+- Fontes Fredoka e Nunito (OFL) em `brand/`; navegador e MP4 seguem as mesmas regras
+  (teste de paridade entre state.ts e state_at).
+
 ## 0.2.0 — 2026-10-13
 
 Análise automática (versão clássica, sem modelo de IA para baixar).

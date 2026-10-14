@@ -79,6 +79,17 @@ def main(video: str, out: str = "e2e-auto-shots", points_json: str | None = None
         assert page.get_by_test_id("fx-clock").inner_text().strip() not in ("", "–")
         assert int(page.get_by_test_id("fx-strokes").inner_text()) > 0
         page.locator(".frame").screenshot(path=shots / "auto-sobreposicao.png")
+
+        # MP4 com a sobreposição: gera, espera e baixa
+        page.get_by_role("button", name="Gerar vídeo").click()
+        baixar = page.get_by_role("link", name="Baixar MP4")
+        expect(baixar).to_be_visible(timeout=600_000)
+        with page.expect_download() as dl:
+            baixar.click()
+        mp4 = shots / "prova-fluxi-swim.mp4"
+        dl.value.save_as(mp4)
+        assert dl.value.suggested_filename.endswith("-fluxi-swim.mp4"), dl.value.suggested_filename
+        assert mp4.stat().st_size > 100_000
         n_ev = page.locator(".timeline rect[data-ev]").count()
         assert n_ev >= 30, n_ev
         metrics = page.locator(".metrics").inner_text()

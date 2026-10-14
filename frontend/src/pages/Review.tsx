@@ -159,6 +159,7 @@ export default function Review({ videoId }: { videoId: string }) {
   // ---- Análise automática -----------------------------------------------------------
   const analysisActive =
     video?.analysis_status === "queued" || video?.analysis_status === "running";
+  const exportActive = video?.export_status === "queued" || video?.export_status === "running";
 
   const refreshAnalysis = useCallback(async () => {
     apply(await api.events(videoId));
@@ -178,12 +179,12 @@ export default function Review({ videoId }: { videoId: string }) {
   );
 
   useEffect(() => {
-    if (!analysisActive) return;
+    if (!analysisActive && !exportActive) return;
     const id = window.setInterval(async () => {
       try {
         const v = await api.getVideo(videoId);
         setVideo(v);
-        if (v.analysis_status !== "queued" && v.analysis_status !== "running") {
+        if (analysisActive && v.analysis_status !== "queued" && v.analysis_status !== "running") {
           await refreshAnalysis();
         }
       } catch {
@@ -191,7 +192,15 @@ export default function Review({ videoId }: { videoId: string }) {
       }
     }, 2000);
     return () => window.clearInterval(id);
-  }, [analysisActive, videoId, refreshAnalysis]);
+  }, [analysisActive, exportActive, videoId, refreshAnalysis]);
+
+  const runExport = async () => {
+    try {
+      setVideo(await api.exportVideo(videoId));
+    } catch (e) {
+      setError(String((e as Error).message));
+    }
+  };
 
   const runAnalysis = async () => {
     try {
@@ -534,6 +543,36 @@ export default function Review({ videoId }: { videoId: string }) {
         >
           {analysisActive ? "Analisando…" : video.analysis_status === "idle" ? "Analisar" : "Analisar de novo"}
         </button>
+      </div>
+
+      <div className={`export-bar ${video.export_status}`}>
+        <div>
+          <b className="fx-word">Vídeo Fluxi Swim</b>{" "}
+          <span className="muted">
+            {{
+              idle: "MP4 com relógio, balões e números gravados no vídeo, pronto para enviar.",
+              queued: "na fila…",
+              running: `gerando… ${Math.round(100 * (video.export_progress ?? 0))}%`,
+              done: `pronto${video.exported_at ? ` (${new Date(video.exported_at).toLocaleString("pt-BR")})` : ""}. Se mudar as marcações, gere de novo.`,
+              failed: video.export_error ?? "não foi possível gerar",
+            }[video.export_status]}
+          </span>
+          {exportActive && (
+            <div className="export-progress">
+              <div style={{ width: `${100 * (video.export_progress ?? 0)}%` }} />
+            </div>
+          )}
+        </div>
+        <div className="export-actions">
+          {video.export_status === "done" && (
+            <a className="btn small primary" href={`/api/videos/${videoId}/export.mp4`} download>
+              Baixar MP4
+            </a>
+          )}
+          <button className="btn small fx-btn" disabled={exportActive} onClick={runExport}>
+            {exportActive ? "Gerando…" : video.export_status === "done" ? "Gerar de novo" : "Gerar vídeo"}
+          </button>
+        </div>
       </div>
 
       {editRace && (

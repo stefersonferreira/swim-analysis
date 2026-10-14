@@ -57,6 +57,10 @@ def video_dict(v: Video) -> dict:
         "analysis_status": v.analysis_status or "idle",
         "analysis_notes": v.analysis_notes or [],
         "analyzed_at": v.analyzed_at.isoformat() if v.analyzed_at else None,
+        "export_status": v.export_status or "idle",
+        "export_progress": v.export_progress,
+        "export_error": v.export_error,
+        "exported_at": v.exported_at.isoformat() if v.exported_at else None,
         "created_at": v.created_at.isoformat() if v.created_at else None,
     }
 
@@ -163,13 +167,52 @@ def analyze_video(video_id: str, db: Session = Depends(get_db)) -> dict:
     return video_dict(v)
 
 
+@router.post("/{video_id}/export", status_code=202)
+def export_video(video_id: str, db: Session = Depends(get_db)) -> dict:
+    """Gera o MP4 com a sobreposição Fluxi Swim (no worker)."""
+    v = get_video(video_id, db)
+    require_ready(v)
+    if v.export_status in ("queued", "running"):
+        return video_dict(v)
+    from app.worker import export
+
+    v.export_status, v.export_progress, v.export_error = "queued", 0.0, None
+    db.commit()
+    export.delay(v.id)
+    db.refresh(v)
+    return video_dict(v)
+
+
+@router.get("/{video_id}/export.mp4")
+def export_file(video_id: str, db: Session = Depends(get_db)) -> FileResponse:
+    v = get_video(video_id, db)
+    f = export_path(video_id)
+    if v.export_status != "done" or not f.exists():
+        raise HTTPException(404, "o vídeo com a sobreposição ainda não foi gerado")
+    return FileResponse(f, media_type="video/mp4", filename=f"{slug(v.title)}-fluxi-swim.mp4")
+
+
+def export_path(video_id: str) -> Path:
+    return paths_for(video_id).root / "export" / "overlay.mp4"
+
+
+def slug(s: str) -> str:
+    import re
+    import unicodedata
+
+    s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-zA-Z0-9]+", "-", s).strip("-").lower() or "prova"
+
+
 @router.post("/{video_id}/reingest", status_code=202)
 def reingest(video_id: str, db: Session = Depends(get_db)) -> dict:
     v = get_video(video_id, db)
     readers.drop(v.id)
     shutil.rmtree(paths_for(v.id).root / "analysis", ignore_errors=True)
+    shutil.rmtree(paths_for(v.id).root / "export", ignore_errors=True)
     v.status = "uploaded"
     v.analysis_status = "idle"
+    v.export_status, v.export_progress, v.export_error = "idle", None, None
     db.commit()
     enqueue_ingest(v.id)
     return video_dict(v)

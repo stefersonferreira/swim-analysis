@@ -105,6 +105,15 @@ def test_calibration_triggers_analysis(client, video):
     assert {"15m", "split", "finish"} <= set(kinds), kinds
     assert tl["clock_end"] == pytest.approx(truth.finish_t - truth.start_t, abs=0.15)
     assert sum(x is not None for x in tl["track"]["x"]) > 100
+    # MP4 com a sobreposição (worker em modo síncrono nos testes)
+    assert client.get(f"/api/videos/{vid}/export.mp4").status_code == 404
+    v = client.post(f"/api/videos/{vid}/export").json()
+    v = client.get(f"/api/videos/{vid}").json()
+    assert v["export_status"] == "done", v["export_error"]
+    r = client.get(f"/api/videos/{vid}/export.mp4")
+    assert r.status_code == 200 and r.headers["content-type"] == "video/mp4"
+    assert "fluxi-swim.mp4" in r.headers["content-disposition"]
+    assert len(r.content) > 100_000
 
 
 def test_reanalysis_keeps_corrections(client, video):
