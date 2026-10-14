@@ -101,6 +101,10 @@ def _track(race: RaceInfo, lengths, start: Event | None, traj: dict | None) -> l
     L = race.pool_length_m
     evpts = _race_points(race, lengths, start)
     if traj is None or len(traj.get("t", [])) == 0:
+        # só paredes (largada, viradas, chegada): a posição no meio seria inventada por
+        # interpolação, então sem barra de progresso nem velocidade instantânea
+        if all(abs(d / L - round(d / L)) < 1e-6 for _, d in evpts):
+            return []
         return [TrackSample(t, d, None, None) for t, d in evpts]
     t = np.asarray(traj["t"], float)
     head = np.asarray(traj["head_x"], float)
@@ -163,11 +167,14 @@ def build_timeline(
     duration_s: float = 0.0,
     trajectory: dict | None = None,
     notes: list[str] | None = None,
+    strokes_partial: bool = False,
 ) -> dict:
     """Tudo o que a sobreposição precisa, em JSON simples.
 
     notes: observações de quem revisou, mostradas no quadro final (ex.: trecho do vídeo em
     que as braçadas foram contadas).
+    strokes_partial: as braçadas marcadas cobrem só um trecho (o nadador saiu de quadro).
+    Ritmo e tempo de ciclo continuam valendo; a contagem aparece como "–".
 
     trajectory: colunas t, head_x e, opcionalmente, head_img_x/head_img_y (como em
     analysis/trajectory.parquet).
@@ -299,7 +306,7 @@ def build_timeline(
         data = out_lengths[k]
         if closes:
             parts = []
-            if ln.of(E.STROKE):
+            if ln.of(E.STROKE) and not strokes_partial:
                 parts.append(f"{len(ln.of(E.STROKE))} {stroke_word.lower()}")
             if data["tempo"] is not None:
                 parts.append(f"{br(data['tempo'])} s/ciclo")
@@ -337,13 +344,18 @@ def build_timeline(
             rows.append([lab, f"{clock_text(d['split'])} s"])
     tempos = [d["tempo"] for d in out_lengths if d["tempo"] is not None]
     if tempos:
-        rows.append(["Tempo de ciclo", f"{br(sum(tempos) / len(tempos))} s"])
+        tempo_avg = sum(tempos) / len(tempos)
+        rows.append(["Tempo de ciclo", f"{br(tempo_avg)} s"])
+        rows.append(["Ritmo", f"{60 / tempo_avg:.0f} ciclos/min"])
     sp = [d["speed"] for d in out_lengths if d["speed"] is not None]
+    final_all = _metric(report, "final_time_s", length_index=len(lengths) - 1)
     if sp:
         rows.append(["Velocidade", f"{br(sum(sp) / len(sp))} m/s"])
+    elif final_all:  # sem posições: média da prova inteira (distância / tempo)
+        rows.append(["Velocidade média", f"{br(race.distance / final_all)} m/s"])
     n_strokes = sum(len(d["strokes"]) for d in out_lengths)
     if n_strokes:
-        rows.append([stroke_word, str(n_strokes)])
+        rows.append([stroke_word, "–" if strokes_partial else str(n_strokes)])
 
     # ---- várias raias: quadro comparativo -------------------------------------------------
     lanes_out = []
@@ -400,6 +412,7 @@ def build_timeline(
         "summary": rows,
         "lanes": lanes_out,
         "notes": list(notes or []),
+        "strokes_partial": strokes_partial,
     }
 
 

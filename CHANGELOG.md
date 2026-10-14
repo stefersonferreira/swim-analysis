@@ -13,6 +13,11 @@ Várias raias no mesmo vídeo (treino com saídas lado a lado).
   distância por ciclo quando há calibração. "–" = não visto no vídeo.
 - Sobreposição (tela e MP4): quadro ao vivo por raia (braçadas, ritmo, tempo ao chegar) e
   comparativo lado a lado no fim, com observações de quem revisou (`notes`).
+- Sem posições medidas (só largada e chegada), a barra de progresso e a velocidade instantânea
+  não aparecem: antes eram interpoladas e pareciam medidas. O resumo mostra ritmo (ciclos/min)
+  e velocidade média da prova (distância / tempo).
+- `strokes_partial`: ciclos marcados só num trecho do vídeo; o ritmo vale, a contagem vira "–".
+  Observações de quem revisou (`notes`) também aparecem no resumo de um atleta.
 - Correção: "Gerar vídeo" travava quando o desenho de um quadro falhava (o ffmpeg ficava
   esperando quadros); agora o erro aparece. O fim com resumo não exige mais a chegada do
   atleta da prova.

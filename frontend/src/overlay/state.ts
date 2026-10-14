@@ -79,6 +79,8 @@ export interface OverlayTimeline {
   summary: [string, string][];
   lanes?: OverlayLane[];
   notes?: string[];
+  /** braçadas marcadas só num trecho: a contagem aparece como "–" */
+  strokes_partial?: boolean;
 }
 
 export interface OverlayState {

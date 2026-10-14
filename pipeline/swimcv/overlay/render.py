@@ -326,7 +326,11 @@ class Painter:
             swimming = s["phase"] in ("swim", "underwater", "turn")
             rows = [
                 ("Piscina", str(s["length"] + 1), f"/{tl['n_lengths']}"),
-                (tl["stroke_word"], str(s["strokes"]), ""),
+                (
+                    tl["stroke_word"],
+                    "–" if tl.get("strokes_partial") else str(s["strokes"]),
+                    "",
+                ),
                 ("Tempo de ciclo", br(s["tempo"]) if s["tempo"] is not None else "–", "s"),
                 (
                     "Velocidade",
@@ -673,7 +677,16 @@ class Painter:
             )
             n_rows = math.ceil(len(rows) / 2)
             row_h = self.px(2.6)
-            h = self.px(2 + 2.1 + 3.2 + 2.2) + n_rows * row_h + self.px(1.6)
+            notes = tl.get("notes", [])
+            fn = self.f("nunito", 0.8, 700)
+            note_h = self.px(1.4)
+            w = max(w, int(max((_text_w(n, fn) for n in notes), default=0)) + self.px(5.2))
+            h = (
+                self.px(2 + 2.1 + 3.2 + 2.2)
+                + n_rows * row_h
+                + self.px(1.6)
+                + (len(notes) * note_h + self.px(0.6) if notes else 0)
+            )
             sprite, m, _ = self.card(
                 w, h, self.px(2), border=(110, 231, 183, 128), glow=MINT, glow_a=0.3
             )
@@ -714,6 +727,10 @@ class Painter:
                     fill=(159, 176, 204, 51),
                     width=1,
                 )
+            ny = y + n_rows * row_h + self.px(0.6)
+            for note in notes:
+                ny += note_h
+                d.text((x, ny), note, font=fn, fill=MUTED, anchor="ls")
             self._cache[key] = (sp, w, h, m)
         sp, w, h, m = self._cache[key]
         _composite_clipped(img, sp, int((self.W - w) / 2 - m), int((self.H - h) / 2 - m))

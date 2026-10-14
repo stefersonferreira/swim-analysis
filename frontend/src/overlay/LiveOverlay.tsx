@@ -39,7 +39,11 @@ export default function LiveOverlay({ tl, t }: { tl: OverlayTimeline; t: number 
       {lanes.length === 0 && s.phase !== "ready" && s.phase != null && tl.has_swim_data !== false && (
         <div className="fx-card fx-stats">
           <Stat label="Piscina" value={`${s.length + 1}`} unit={`/${tl.n_lengths}`} />
-          <Stat label={tl.stroke_word} value={String(s.strokes)} testid="fx-strokes" />
+          <Stat
+            label={tl.stroke_word}
+            value={tl.strokes_partial ? "–" : String(s.strokes)}
+            testid="fx-strokes"
+          />
           <Stat label="Tempo de ciclo" value={s.tempo != null ? br(s.tempo) : "–"} unit="s" />
           <Stat label="Velocidade" value={swimming && s.speed != null ? br(s.speed) : "–"} unit="m/s" />
         </div>
@@ -151,6 +155,11 @@ function Summary({ tl }: { tl: OverlayTimeline }) {
           </div>
         ))}
       </div>
+      {(tl.notes ?? []).map((n) => (
+        <div key={n} className="fx-lanes-note">
+          {n}
+        </div>
+      ))}
     </div>
   );
 }

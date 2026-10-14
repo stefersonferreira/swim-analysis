@@ -184,3 +184,30 @@ def test_only_start_marked_does_not_fake_a_phase_or_panel():
     assert state_at(tl, t0 + 5.0)["clock"] is not None  # o relógio continua
     full = free_timeline()
     assert full["has_swim_data"] is True
+
+
+def test_walls_only_and_partial_strokes_do_not_invent_numbers():
+    """Só largada, chegada e um trecho de ciclos: sem barra de progresso interpolada,
+    contagem de ciclos como "–", ritmo e velocidade média da prova no resumo."""
+    from swimcv.contracts import Event, RaceInfo, Stroke
+
+    race = RaceInfo(stroke=Stroke.BREASTSTROKE, distance=25, pool_length=25, lane=1)
+
+    def ev(ty, t):
+        return Event(type=ty, frame=round(t * 30), t=t)
+
+    evs = [ev(EventType.START_SIGNAL, 1.0), ev(EventType.FEET_OFF, 2.1), ev(EventType.ENTRY, 2.4)]
+    evs += [ev(EventType.STROKE, t) for t in (14.8, 16.0, 17.2, 18.4)]
+    evs.append(ev(EventType.FINISH_TOUCH, 27.0))
+    tl = build_timeline(
+        race, evs, compute_metrics(race, evs), duration_s=29.0, strokes_partial=True,
+        notes=["trecho medido"],
+    )  # fmt: skip
+    assert tl["track"]["d"] == []
+    s = state_at(tl, 10.0)
+    assert s["race_d"] is None and s["speed"] is None
+    rows = dict(tl["summary"])
+    assert rows["Ciclos"] == "–"
+    assert rows["Ritmo"] == "50 ciclos/min"
+    assert rows["Velocidade média"] == "0,96 m/s"
+    assert tl["notes"] == ["trecho medido"] and tl["strokes_partial"]
