@@ -23,6 +23,7 @@ from swimcv.metrics.compute import split_lengths
 from swimcv.metrics.lanes import athlete_events, compare_lanes
 
 E = EventType
+PULSE_S = 0.35  # quanto tempo o número pisca a cada braçada/ciclo marcado
 CALLOUT_S = 2.6  # tempo que um balão fica na tela
 TURN_BEFORE_S = 1.0  # a virada começa um pouco antes do toque
 TRACK_STEP_S = 1 / 15  # amostragem da trajetória enviada ao navegador
@@ -505,6 +506,7 @@ def state_at(tl: dict, t: float) -> dict:
                 "tempo": next((s[1] for s in reversed(ld) if s[1] is not None), None),
                 "finished": lr["finish_t"] is not None and t >= lr["finish_t"],
                 "started": lr.get("start_t") is not None and t >= lr["start_t"],
+                "pulse": bool(ld) and t - ld[-1][0] < PULSE_S,
             }
         )
     summary = (
@@ -527,6 +529,7 @@ def state_at(tl: dict, t: float) -> dict:
         "phase_label": ph["label"] if ph else None,
         "length": ln["index"],
         "strokes": len(done),
+        "pulse": bool(done) and t - done[-1][0] < PULSE_S,
         "tempo": tempo,
         "speed": v,
         "race_d": d,

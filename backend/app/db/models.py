@@ -1,3 +1,4 @@
+import secrets
 from datetime import UTC, datetime
 from uuid import uuid4
 
@@ -11,6 +12,11 @@ def _now() -> datetime:
 
 def _id() -> str:
     return uuid4().hex
+
+
+def _token() -> str:
+    # link de entrega para o cliente: difícil de adivinhar, sem login
+    return secrets.token_urlsafe(16)
 
 
 class Base(DeclarativeBase):
@@ -51,6 +57,20 @@ class Video(Base):
     # vídeo final: ciclos marcados só num trecho (contagem vira "–") e observações do resumo
     strokes_partial: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     review_notes: Mapped[list | None] = mapped_column(JSON)
+    # pedido de revisão (cliente envia pela página pública ou o treinador cadastra)
+    origin: Mapped[str] = mapped_column(String(10), default="coach", server_default="coach")
+    customer_name: Mapped[str | None] = mapped_column(String(200))
+    customer_email: Mapped[str | None] = mapped_column(String(200))
+    customer_phone: Mapped[str | None] = mapped_column(String(40))
+    customer_notes: Mapped[str | None] = mapped_column(Text)
+    # new | reviewing | delivered
+    order_status: Mapped[str] = mapped_column(String(20), default="new", server_default="new")
+    due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    paid: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    share_token: Mapped[str] = mapped_column(String(40), unique=True, index=True, default=_token)
+    # devolutiva do treinador: {summary, strengths[], improve[], drills[]}
+    feedback: Mapped[dict | None] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, onupdate=_now

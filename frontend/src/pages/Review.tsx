@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api";
 import CalibrationPanel, { nextPick, type Pick } from "../components/CalibrationPanel";
 import FrameView from "../components/FrameView";
+import DeliveryPanel from "../components/DeliveryPanel";
 import MarkingPanel from "../components/MarkingPanel";
 import MetricsPanel from "../components/MetricsPanel";
 import RaceFields from "../components/RaceFields";
@@ -810,6 +811,8 @@ export default function Review({ videoId }: { videoId: string }) {
                 </div>
                 <FinalOptions video={video} onSaved={onVideo} onError={(m) => setError(m)} />
               </section>
+
+              <DeliveryPanel video={video} onVideo={onVideo} onError={(m) => setError(m)} />
 
               <details className="card more">
                 <summary>Outras marcações</summary>

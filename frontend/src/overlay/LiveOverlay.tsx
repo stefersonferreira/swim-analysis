@@ -43,8 +43,14 @@ export default function LiveOverlay({ tl, t }: { tl: OverlayTimeline; t: number 
             label={tl.stroke_word}
             value={tl.strokes_partial ? "–" : String(s.strokes)}
             testid="fx-strokes"
+            pulse={s.pulse && !tl.strokes_partial}
           />
-          <Stat label="Tempo de ciclo" value={s.tempo != null ? br(s.tempo) : "–"} unit="s" />
+          <Stat
+            label="Tempo de ciclo"
+            value={s.tempo != null ? br(s.tempo) : "–"}
+            unit="s"
+            pulse={s.pulse && s.tempo != null}
+          />
           <Stat label="Velocidade" value={swimming && s.speed != null ? br(s.speed) : "–"} unit="m/s" />
         </div>
       )}
@@ -89,11 +95,11 @@ export default function LiveOverlay({ tl, t }: { tl: OverlayTimeline; t: number 
   );
 }
 
-function Stat(props: { label: string; value: string; unit?: string; testid?: string }) {
+function Stat(props: { label: string; value: string; unit?: string; testid?: string; pulse?: boolean }) {
   return (
     <div className="fx-stat">
       <div className="fx-stat-label">{props.label}</div>
-      <div className="fx-stat-value" data-testid={props.testid}>
+      <div className={`fx-stat-value ${props.pulse ? "pulse" : ""}`} data-testid={props.testid}>
         {props.value}
         {props.unit && <small>{props.unit}</small>}
       </div>
@@ -204,7 +210,7 @@ function LanesBoard({ tl, s }: { tl: OverlayTimeline; s: OverlayState }) {
               {r.strokes}
             </b>
           ) : null,
-          <b key={`r${r.lane}`} className={r.tempo ? "" : "muted"}>
+          <b key={`r${r.lane}`} className={r.tempo ? (r.pulse ? "mint" : "") : "muted"}>
             {r.tempo ? (
               <>
                 {(60 / r.tempo).toFixed(0)}

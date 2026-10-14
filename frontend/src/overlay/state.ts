@@ -55,6 +55,7 @@ export interface LaneState {
   tempo: number | null;
   finished: boolean;
   started: boolean;
+  pulse: boolean;
 }
 
 export interface OverlayTimeline {
@@ -99,9 +100,12 @@ export interface OverlayState {
   callouts: Callout[];
   showSummary: boolean;
   lanes: LaneState[];
+  /** acabou de acontecer uma braçada/ciclo: o número pisca */
+  pulse: boolean;
 }
 
 const CALLOUT_S = 2.6;
+const PULSE_S = 0.35;
 const SUMMARY_TAIL_S = 0.3;
 
 function interp(ts: number[], vs: (number | null)[], t: number): number | null {
@@ -148,6 +152,7 @@ export function stateAt(tl: OverlayTimeline, t: number): OverlayState {
       tempo: [...ld].reverse().find((s) => s[1] != null)?.[1] ?? null,
       finished: lr.finish_t != null && t >= lr.finish_t,
       started: lr.start_t != null && t >= lr.start_t,
+      pulse: ld.length > 0 && t - ld[ld.length - 1][0] < PULSE_S,
     };
   });
   let clockNow = clock;
@@ -165,6 +170,7 @@ export function stateAt(tl: OverlayTimeline, t: number): OverlayState {
   }
   return {
     clock: clockNow,
+    pulse: done.length > 0 && t - done[done.length - 1][0] < PULSE_S,
     phase: kind,
     phaseLabel: ph?.label ?? null,
     length: ln.index,

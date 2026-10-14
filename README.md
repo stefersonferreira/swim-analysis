@@ -106,6 +106,28 @@ As métricas são recalculadas a cada mudança. “—” significa não medido 
 passar o mouse). Os tempos vêm sempre do relógio real de cada quadro (vídeos de celular têm
 taxa variável).
 
+## Atender clientes (revisão paga)
+
+Fluxo igual ao de serviços como o Swimming Everywhere (vídeo curto, análise + devolutiva de
+treinador em até 72 h), com a sobreposição Fluxi Swim e o relatório:
+
+1. **O cliente envia** em `/enviar` (pensada para celular): instruções de gravação, estilo,
+   piscina, distância, nome, WhatsApp/e-mail e observações. Ao terminar, recebe um link
+   `/r/...` para acompanhar (recebido → em análise → entregue) com o prazo.
+2. **O pedido aparece em "Pedidos"**, com prazo ("faltam 41 h", "atrasado 3 h" em vermelho),
+   situação e caixa "Pago".
+3. **Você marca e gera o vídeo** na revisão, como sempre.
+4. **"Devolutiva e entrega"** (painel da revisão): "Gerar rascunho a partir dos números" monta
+   resumo, pontos fortes, o que melhorar e exercícios só com o que foi medido; você revisa e
+   salva. "Entregar ao cliente" libera no link o vídeo, a devolutiva, os números e o relatório
+   (PDF), e mostra os botões "Enviar no WhatsApp" e "Copiar link".
+
+**Antes de abrir para a internet**, defina `SWIM_ADMIN_PASSWORD` no `.env`: a área do
+treinador passa a pedir senha; `/enviar` e os links `/r/...` continuam públicos. Para expor o
+notebook sem abrir portas no roteador, use um túnel (por exemplo Cloudflare Tunnel) apontando
+para `http://localhost:8080`. Cobrança automática (Pix/cartão, pacotes de 5 e 10) ainda não
+está ligada: por enquanto marque "Pago" à mão.
+
 ## Desenvolvimento
 
 Tudo também roda fora do Docker para desenvolver (Linux/WSL):

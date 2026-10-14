@@ -231,6 +231,7 @@
 .fx-lanes-table b { font-size: calc(var(--u) * 1.5); }
 .fx-lanes-note { font-size: calc(var(--u) * 0.8); font-weight: 700; color: var(--fx-muted); margin-top: calc(var(--u) * 0.3); }
 
+.fx-stat-value.pulse { color: var(--fx-mint); }
 .fx-overlay * { --u: 1cqw; }
 @container (orientation: portrait) {
   .fx-overlay * { --u: 2.2cqw; }

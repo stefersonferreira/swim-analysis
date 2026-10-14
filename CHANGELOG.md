@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.5.0 — 2026-10-14
+
+Revisão paga para clientes (no formato do Swimming Everywhere: vídeo curto, análise e
+devolutiva de treinador em até 72 h).
+
+- Página pública `/enviar` (celular): instruções de gravação, dados da prova e contato,
+  progresso do envio, armadilha contra robôs. `POST /api/public/orders`.
+- Link do cliente `/r/{token}`: acompanha recebido → em análise → entregue com o prazo; depois
+  de entregue, vídeo, devolutiva, números, relatório e compartilhar no WhatsApp.
+- Pedidos (migração 0006): origem, contato, observações, prazo (`SWIM_TURNAROUND_HOURS`), pago,
+  situação. A lista vira fila: abertos por prazo, atrasados em vermelho.
+- Devolutiva do treinador (resumo, pontos fortes, o que melhorar, exercícios) com rascunho
+  gerado só dos números medidos (`swimcv.report.feedback`); entra no relatório e no link.
+- "Entregar ao cliente" + mensagem pronta para WhatsApp/e-mail; "Desfazer entrega".
+- Senha da área do treinador (`SWIM_ADMIN_PASSWORD`); rotas do cliente seguem públicas.
+- Sobreposição: contagem e tempo de ciclo piscam em verde a cada braçada/ciclo marcado.
+
 ## 0.4.0 — 2026-10-14
 
 Várias raias no mesmo vídeo (treino com saídas lado a lado).

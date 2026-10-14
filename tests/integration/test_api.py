@@ -173,3 +173,79 @@ def test_lanes_final_options_and_report(client, video):
     assert page.status_code == 200 and page.headers["content-type"].startswith("text/html")
     assert "Raia 2" in page.text and "Toque com margem de 0,2 s" in page.text
     assert "1º" in page.text
+
+
+def test_client_order_feedback_and_delivery(client, tmp_path):
+    src = tmp_path / "cliente.mp4"
+    make_vfr_video(src)
+    with src.open("rb") as f:
+        r = client.post(
+            "/api/public/orders",
+            files={"file": ("cliente.mp4", f, "video/mp4")},
+            data={"name": "Ana Souza", "phone": "(85) 99999-1234", "stroke": "breaststroke",
+                  "pool_length": "25", "distance": "50", "notes": "melhorar a saída"},
+        )  # fmt: skip
+    assert r.status_code == 201, r.text
+    token = r.json()["token"]
+    # o cliente acompanha pelo link, sem ver nada interno
+    st = client.get(f"/api/public/r/{token}").json()
+    assert st["status"] == "new" and not st["delivered"] and st["first_name"] == "Ana"
+    assert "feedback" not in st and st["due_at"]
+    assert client.get(f"/api/public/r/{token}/report.html").status_code == 404
+    # o treinador vê o pedido na lista, com prazo
+    v = next(
+        x for x in client.get("/api/videos").json() if x["order"]["share_path"].endswith(token)
+    )
+    assert v["order"]["origin"] == "client" and v["order"]["customer_notes"] == "melhorar a saída"
+    assert v["race"]["stroke"] == "breaststroke" and v["race"]["distance"] == 50
+    vid = v["id"]
+    # entregar sem devolutiva é recusado
+    assert client.post(f"/api/videos/{vid}/deliver").status_code == 409
+    draft = client.post(f"/api/videos/{vid}/feedback/draft").json()
+    assert set(draft) == {"summary", "strengths", "improve", "drills"}
+    fb = {"summary": "Boa base.", "strengths": ["Ritmo regular"], "improve": [], "drills": ["  "]}
+    r = client.put(f"/api/videos/{vid}/feedback", json=fb)
+    assert r.json()["order"]["status"] == "reviewing"
+    assert r.json()["order"]["feedback"]["drills"] == []
+    r = client.put(f"/api/videos/{vid}/order", json={"paid": True})
+    assert r.json()["order"]["paid"] is True
+    r = client.post(f"/api/videos/{vid}/deliver")
+    assert r.status_code == 200 and r.json()["order"]["status"] == "delivered"
+    st = client.get(f"/api/public/r/{token}").json()
+    assert st["delivered"] and st["feedback"]["summary"] == "Boa base."
+    assert st["has_video"] is False and "table" in st
+    page = client.get(f"/api/public/r/{token}/report.html").text
+    assert "Devolutiva do treinador" in page and "Ritmo regular" in page
+    assert client.get("/api/public/r/naoexiste").status_code == 404
+
+
+def test_public_order_validation(client):
+    bad = client.post(
+        "/api/public/orders",
+        files={"file": ("x.mp4", b"0", "video/mp4")},
+        data={"name": "Bo", "stroke": "freestyle"},
+    )
+    assert bad.status_code == 422 and "WhatsApp" in bad.json()["detail"]
+    bot = client.post(
+        "/api/public/orders",
+        files={"file": ("x.mp4", b"0", "video/mp4")},
+        data={"name": "Bot", "email": "a@b.c", "website": "spam"},
+    )
+    assert bot.status_code == 400
+
+
+def test_coach_password(client, monkeypatch):
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "admin_password", "segredo")
+    client.cookies.clear()
+    assert client.get("/api/videos").status_code == 401
+    assert client.get("/api/health").status_code == 200
+    assert client.get("/api/auth/me").json() == {"auth_required": True, "logged_in": False}
+    assert client.get("/api/public/r/naoexiste").status_code == 404  # público continua aberto
+    assert client.post("/api/auth/login", json={"password": "errada"}).status_code == 401
+    assert client.post("/api/auth/login", json={"password": "segredo"}).status_code == 200
+    assert client.get("/api/videos").status_code == 200
+    client.post("/api/auth/logout")
+    client.cookies.clear()
+    assert client.get("/api/videos").status_code == 401

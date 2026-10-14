@@ -16,6 +16,13 @@ class Settings(BaseSettings):
     # Recusa vídeos abaixo dos requisitos (fps, resolução, duração).
     strict_ingest: bool = True
     max_upload_mb: int = 2048
+    # pedidos de clientes
+    turnaround_hours: int = 72
+    public_max_upload_mb: int = 400
+    # senha da área do treinador; vazio = sem login (uso só no próprio computador)
+    admin_password: str = ""
+    # endereço público (ex.: https://analise.fluxiia.com) para montar os links de entrega
+    public_url: str = ""
 
 
 @lru_cache

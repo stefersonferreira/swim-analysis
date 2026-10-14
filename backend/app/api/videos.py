@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 import shutil
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
 from fastapi.responses import FileResponse
@@ -14,9 +16,10 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.db import Video, get_db
-from app.services import audit
+from app.services import audit, feedback_draft
 from swimcv.contracts import RaceInfo
 from swimcv.ingest.frames import FrameReaderCache, read_frame_table
+from swimcv.report.build import clean_feedback
 from swimcv.storage import VideoPaths
 
 router = APIRouter(prefix="/api/videos", tags=["videos"])
@@ -64,6 +67,23 @@ def video_dict(v: Video) -> dict:
         "export_error": v.export_error,
         "exported_at": v.exported_at.isoformat() if v.exported_at else None,
         "created_at": v.created_at.isoformat() if v.created_at else None,
+        "order": order_dict(v),
+    }
+
+
+def order_dict(v: Video) -> dict:
+    return {
+        "origin": v.origin or "coach",
+        "status": v.order_status or "new",
+        "customer_name": v.customer_name,
+        "customer_email": v.customer_email,
+        "customer_phone": v.customer_phone,
+        "customer_notes": v.customer_notes,
+        "due_at": v.due_at.isoformat() if v.due_at else None,
+        "delivered_at": v.delivered_at.isoformat() if v.delivered_at else None,
+        "paid": bool(v.paid),
+        "share_path": f"/r/{v.share_token}",
+        "feedback": v.feedback,
     }
 
 
@@ -106,7 +126,6 @@ async def upload_video(
     except (ValueError, ValidationError) as exc:
         raise HTTPException(422, f"dados da prova inválidos: {exc}") from exc
 
-    limit = get_settings().max_upload_mb * 1024 * 1024
     v = Video(
         title=title or (file.filename or "Prova"),
         athlete=athlete or None,
@@ -114,6 +133,13 @@ async def upload_video(
         status="uploaded",
         warnings=[],
     )
+    await store_upload(db, v, file, suffix, get_settings().max_upload_mb)
+    return video_dict(v)
+
+
+async def store_upload(db: Session, v: Video, file: UploadFile, suffix: str, max_mb: int) -> None:
+    """Grava o arquivo enviado em partes (sem carregar tudo na memória) e põe na fila."""
+    limit = max_mb * 1024 * 1024
     db.add(v)
     db.flush()
     paths = paths_for(v.id).ensure()
@@ -126,12 +152,11 @@ async def upload_video(
                 out.close()
                 shutil.rmtree(paths.root, ignore_errors=True)
                 db.rollback()
-                raise HTTPException(413, f"arquivo maior que {get_settings().max_upload_mb} MB")
+                raise HTTPException(413, f"arquivo maior que {max_mb} MB")
             out.write(chunk)
     db.commit()
     enqueue_ingest(v.id)
     db.refresh(v)
-    return video_dict(v)
 
 
 @router.get("")
@@ -172,6 +197,69 @@ def update_final_options(video_id: str, opts: FinalOptions, db: Session = Depend
     v.strokes_partial, v.review_notes = opts.strokes_partial, notes
     after = {"strokes_partial": v.strokes_partial, "notes": notes}
     audit(db, v.id, "video", v.id, "final_options", before, after)
+    db.commit()
+    return video_dict(v)
+
+
+class OrderUpdate(BaseModel):
+    status: Literal["new", "reviewing", "delivered"] | None = None
+    paid: bool | None = None
+    customer_name: str | None = Field(None, max_length=200)
+    customer_email: str | None = Field(None, max_length=200)
+    customer_phone: str | None = Field(None, max_length=40)
+
+
+@router.put("/{video_id}/order")
+def update_order(video_id: str, body: OrderUpdate, db: Session = Depends(get_db)) -> dict:
+    v = get_video(video_id, db)
+    before = order_dict(v)
+    data = body.model_dump(exclude_unset=True)
+    if "status" in data:
+        v.order_status = data.pop("status")
+        v.delivered_at = datetime.now(UTC) if v.order_status == "delivered" else None
+    for k, val in data.items():
+        setattr(v, k, (val.strip() or None) if isinstance(val, str) else val)
+    audit(db, v.id, "order", v.id, "update", before, order_dict(v))
+    db.commit()
+    return video_dict(v)
+
+
+class Feedback(BaseModel):
+    summary: str = Field("", max_length=2000)
+    strengths: list[str] = Field(default_factory=list, max_length=12)
+    improve: list[str] = Field(default_factory=list, max_length=12)
+    drills: list[str] = Field(default_factory=list, max_length=12)
+
+
+@router.put("/{video_id}/feedback")
+def save_feedback(video_id: str, fb: Feedback, db: Session = Depends(get_db)) -> dict:
+    v = get_video(video_id, db)
+    before = v.feedback
+    v.feedback = clean_feedback(fb.model_dump())
+    if v.order_status == "new" and v.feedback:
+        v.order_status = "reviewing"
+    audit(db, v.id, "feedback", v.id, "update", before, v.feedback)
+    db.commit()
+    return video_dict(v)
+
+
+@router.post("/{video_id}/feedback/draft")
+def draft(video_id: str, db: Session = Depends(get_db)) -> dict:
+    v = get_video(video_id, db)
+    require_ready(v)
+    return feedback_draft(db, v)
+
+
+@router.post("/{video_id}/deliver")
+def deliver(video_id: str, db: Session = Depends(get_db)) -> dict:
+    """Marca como entregue: o link do cliente passa a mostrar vídeo, números e devolutiva."""
+    v = get_video(video_id, db)
+    require_ready(v)
+    if not v.feedback:
+        raise HTTPException(409, "escreva a devolutiva antes de entregar")
+    before = order_dict(v)
+    v.order_status, v.delivered_at = "delivered", datetime.now(UTC)
+    audit(db, v.id, "order", v.id, "deliver", before, order_dict(v))
     db.commit()
     return video_dict(v)
 

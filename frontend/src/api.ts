@@ -4,6 +4,9 @@ import type {
   EventType,
   GridLine,
   PoolProfile,
+  Feedback,
+  OrderStatus,
+  PublicOrder,
   RaceInfo,
   ReviewState,
   TrajectoryData,
@@ -18,6 +21,9 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
       ? { "Content-Type": "application/json", ...(init?.headers || {}) }
       : init?.headers,
   });
+  if (res.status === 401 && !path.startsWith("/api/auth/")) {
+    window.dispatchEvent(new Event("swim:login"));
+  }
   if (!res.ok) {
     let detail = res.statusText;
     try {
@@ -33,6 +39,19 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  me: () => req<{ auth_required: boolean; logged_in: boolean }>("/api/auth/me"),
+  login: (password: string) =>
+    req<{ logged_in: boolean }>("/api/auth/login", { method: "POST", body: JSON.stringify({ password }) }),
+  logout: () => req<{ logged_in: boolean }>("/api/auth/logout", { method: "POST" }),
+  updateOrder: (
+    id: string,
+    body: { status?: OrderStatus; paid?: boolean; customer_name?: string; customer_email?: string; customer_phone?: string },
+  ) => req<Video>(`/api/videos/${id}/order`, { method: "PUT", body: JSON.stringify(body) }),
+  saveFeedback: (id: string, fb: Feedback) =>
+    req<Video>(`/api/videos/${id}/feedback`, { method: "PUT", body: JSON.stringify(fb) }),
+  draftFeedback: (id: string) => req<Feedback>(`/api/videos/${id}/feedback/draft`, { method: "POST" }),
+  deliver: (id: string) => req<Video>(`/api/videos/${id}/deliver`, { method: "POST" }),
+  publicOrder: (token: string) => req<PublicOrder>(`/api/public/r/${token}`),
   listVideos: () => req<Video[]>("/api/videos"),
   getVideo: (id: string) => req<Video>(`/api/videos/${id}`),
   deleteVideo: (id: string) => req<void>(`/api/videos/${id}`, { method: "DELETE" }),

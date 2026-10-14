@@ -57,6 +57,52 @@ export interface Video {
   /** observações de quem revisou, mostradas no resumo do vídeo e no relatório */
   review_notes: string[];
   created_at: string | null;
+  order: Order;
+}
+
+export interface Feedback {
+  summary: string;
+  strengths: string[];
+  improve: string[];
+  drills: string[];
+}
+
+export type OrderStatus = "new" | "reviewing" | "delivered";
+
+export interface Order {
+  origin: "coach" | "client";
+  status: OrderStatus;
+  customer_name: string | null;
+  customer_email: string | null;
+  customer_phone: string | null;
+  customer_notes: string | null;
+  due_at: string | null;
+  delivered_at: string | null;
+  paid: boolean;
+  share_path: string;
+  feedback: Feedback | null;
+}
+
+/** O que o cliente vê no link de entrega. */
+export interface PublicOrder {
+  title: string;
+  first_name: string | null;
+  race: RaceInfo;
+  status: OrderStatus;
+  video_status: Video["status"];
+  created_at: string | null;
+  due_at: string | null;
+  delivered_at: string | null;
+  delivered: boolean;
+  error: string | null;
+  feedback?: Feedback | null;
+  lead?: string;
+  table?: { head: string[]; rows: string[][] };
+  insights?: string[];
+  notes?: string[];
+  has_video?: boolean;
+  video_url?: string;
+  report_url?: string;
 }
 
 export interface SwimEvent {

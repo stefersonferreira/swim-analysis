@@ -83,7 +83,33 @@ def _lane_insights(lanes: list[dict], stroke_word: str) -> list[str]:
     return out
 
 
-def build_report(tl: dict, events: list[Event], *, today: date | None = None) -> dict:
+def clean_feedback(fb: dict | None) -> dict | None:
+    """Devolutiva sem campos vazios; None se não sobrou nada."""
+    if not fb:
+        return None
+    out = {
+        "summary": (fb.get("summary") or "").strip(),
+        **{k: [x.strip() for x in fb.get(k) or [] if x and x.strip()] for k in FEEDBACK_KEYS},
+    }
+    return out if out["summary"] or any(out[k] for k in FEEDBACK_KEYS) else None
+
+
+FEEDBACK_KEYS = ("strengths", "improve", "drills")
+FEEDBACK_TITLES = {
+    "strengths": "Pontos fortes",
+    "improve": "O que melhorar",
+    "drills": "Exercícios sugeridos",
+}
+
+
+def build_report(
+    tl: dict,
+    events: list[Event],
+    *,
+    today: date | None = None,
+    feedback: dict | None = None,
+    coach: str | None = None,
+) -> dict:
     """Dados do relatório a partir da linha do tempo e dos eventos marcados."""
     lanes = tl.get("lanes") or []
     partial = bool(tl.get("strokes_partial"))
@@ -173,6 +199,8 @@ def build_report(tl: dict, events: list[Event], *, today: date | None = None) ->
             for k, v in sorted(moments.items(), key=lambda kv: (kv[0] != "Todas as raias", kv[0]))
         ],
         "notes": notes,
+        "feedback": clean_feedback(feedback),
+        "coach": coach,
     }
 
 
@@ -186,7 +214,7 @@ h1{font:600 30px/1.2 Fredoka,Nunito,sans-serif;margin:6px 0 4px}h2{font:600 20px
 table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
 th{color:var(--mint);font-weight:800;font-size:13px;text-align:right;padding:8px 10px;border-bottom:1px solid var(--line)}
 td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--line)}th:first-child,td:first-child{text-align:left}
-ul{padding-left:20px}li{margin:6px 0}.muted{color:var(--muted)}
+.fbh{font-size:15px;margin:14px 0 4px}ul{padding-left:20px}li{margin:6px 0}.muted{color:var(--muted)}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
 .box{border:1px solid var(--line);border-radius:14px;padding:12px 14px}.box h3{margin:0 0 6px;font-size:15px}
 .box td{padding:4px 0;border:0}.print{position:fixed;top:16px;right:16px;background:var(--mint);color:var(--navy);border:0;border-radius:10px;padding:8px 14px;font-weight:800;cursor:pointer}
@@ -213,6 +241,17 @@ def render_html(rep: dict) -> str:
     ]
     if rep["lead"]:
         parts.append(f"<p class='lead'>{e(rep['lead'])}</p>")
+    fb = rep.get("feedback")
+    if fb:
+        who = f" · {e(rep['coach'])}" if rep.get("coach") else ""
+        parts.append(f"<h2>Devolutiva do treinador{who}</h2>")
+        if fb["summary"]:
+            parts.append(f"<p>{e(fb['summary'])}</p>")
+        for k in FEEDBACK_KEYS:
+            if fb[k]:
+                parts.append(f"<h3 class='fbh'>{FEEDBACK_TITLES[k]}</h3><ul>")
+                parts += [f"<li>{e(x)}</li>" for x in fb[k]]
+                parts.append("</ul>")
     parts.append("<h2>Resultados</h2>" + table(rep["table"]))
     if rep["insights"]:
         parts.append("<h2>Pontos para o técnico</h2><ul>")

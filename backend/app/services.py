@@ -229,4 +229,11 @@ def report_html(db: Session, video: Video) -> str:
 
     tl = overlay_timeline(db, video)
     events = [to_contract(e) for e in live_events(db, video.id)]
-    return render_html(build_report(tl, events))
+    return render_html(build_report(tl, events, feedback=video.feedback))
+
+
+def feedback_draft(db: Session, video: Video) -> dict:
+    """Rascunho da devolutiva a partir dos números medidos (o treinador revisa)."""
+    from swimcv.report import draft_feedback
+
+    return draft_feedback(overlay_timeline(db, video))

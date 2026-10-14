@@ -134,6 +134,36 @@ def main(video: str, out: str = "e2e-shots") -> None:
         expect(page.locator(".steps li.done")).to_have_count(1)
         page.screenshot(path=shots / "06-marcacao-guiada.png")
 
+        # Cliente: envia pela página pública no celular e acompanha pelo link
+        m = browser.new_page(viewport={"width": 390, "height": 844}, is_mobile=True)
+        m.on("pageerror", lambda e: errors.append(str(e)))
+        m.goto(f"{BASE}/enviar")
+        m.set_input_files("input[type=file]", video)
+        m.get_by_label("Nome do atleta").fill("Cliente Teste")
+        m.get_by_label("WhatsApp").fill("85 99999 0000")
+        m.click("[data-testid=send]")
+        m.wait_for_url("**/r/**", timeout=180_000)
+        expect(m.get_by_text("Vídeo enviado")).to_be_visible()
+        m.screenshot(path=shots / "07-cliente-enviado.png", full_page=True)
+        token = m.url.split("/r/")[1].split("?")[0]
+        # Treinador: devolutiva e entrega
+        evs = page.request.get(f"{BASE}/api/videos").json()
+        cv = next(v for v in evs if v["order"]["share_path"] == f"/r/{token}")
+        for _ in range(60):
+            if page.request.get(f"{BASE}/api/videos/{cv['id']}").json()["status"] == "ready":
+                break
+            page.wait_for_timeout(2000)
+        page.goto(f"{BASE}/videos/{cv['id']}")
+        page.click("[data-testid=draft]")
+        expect(page.locator(".delivery textarea").nth(2)).not_to_have_value("")  # o que melhorar
+        page.click("[data-testid=save-feedback]")
+        expect(page.locator("[data-testid=deliver]")).to_be_enabled()
+        page.click("[data-testid=deliver]")
+        expect(page.get_by_text("Entregue ✓")).to_be_visible()
+        m.goto(f"{BASE}/r/{token}")
+        expect(m.get_by_text("Devolutiva do treinador")).to_be_visible()
+        m.screenshot(path=shots / "08-cliente-entregue.png", full_page=True)
+
         if errors:
             raise SystemExit(f"erros de JavaScript: {errors}")
         browser.close()

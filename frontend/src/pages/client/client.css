@@ -1,0 +1,114 @@
+/* Páginas do cliente (enviar vídeo e link de entrega): identidade Fluxi Swim, feitas para celular. */
+@font-face {
+  font-family: "Fredoka";
+  src: url("../../overlay/fonts/Fredoka-Variable.ttf") format("truetype");
+  font-weight: 300 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Nunito";
+  src: url("../../overlay/fonts/Nunito-Variable.ttf") format("truetype");
+  font-weight: 200 1000;
+  font-display: swap;
+}
+
+.client {
+  --mint: #6ee7b7;
+  --sky: #7cc4fa;
+  --navy: #0b1220;
+  --card: #111a2c;
+  --line: #24324f;
+  --txt: #eaf2ff;
+  --mut: #9fb0cc;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+  font-family: Nunito, system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--txt);
+}
+.client .muted { color: var(--mut); }
+.client .small { font-size: 13px; }
+.client .center { text-align: center; }
+.client a { color: var(--sky); }
+.brand-word {
+  font: 700 18px Fredoka, Nunito, sans-serif;
+  background: linear-gradient(90deg, var(--mint), var(--sky));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.client-head h1 { font: 600 28px/1.2 Fredoka, Nunito, sans-serif; margin: 6px 0 8px; }
+.client-head .lead { color: var(--mut); margin: 0 0 8px; }
+.client-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+  margin: 14px 0;
+}
+.client-card h2 { font: 600 18px Fredoka, Nunito, sans-serif; margin: 0 0 10px; color: var(--mint); }
+.howto { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.file-drop {
+  display: grid; gap: 2px; place-items: center; text-align: center; padding: 26px 12px;
+  border: 2px dashed var(--line); border-radius: 14px; cursor: pointer; margin-bottom: 14px;
+}
+.file-drop.has { border-color: var(--mint); border-style: solid; }
+.file-drop input { display: none; }
+.file-drop b { font-size: 17px; }
+.hint-warn { color: #fbbf24; font-size: 14px; margin: -6px 0 12px; }
+.seg-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.seg button {
+  min-height: 44px; padding: 0 14px; background: transparent; border: 0; color: var(--txt);
+  font: 700 15px Nunito, sans-serif; cursor: pointer;
+}
+.seg button.on { background: rgba(110, 231, 183, 0.18); color: var(--mint); }
+.field { display: grid; gap: 4px; margin: 0 0 12px; font-weight: 700; font-size: 14px; }
+.field input, .field textarea, .copy-row input {
+  font: 16px Nunito, sans-serif; color: var(--txt); background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line); border-radius: 10px; padding: 12px; width: 100%;
+}
+.trap { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.client-cta, .client-btn {
+  display: block; width: 100%; min-height: 54px; border: 0; border-radius: 14px; cursor: pointer;
+  background: linear-gradient(90deg, var(--mint), var(--sky)); color: var(--navy);
+  font: 700 17px Fredoka, Nunito, sans-serif; text-align: center; line-height: 54px; text-decoration: none;
+}
+.client-cta:disabled { opacity: 0.45; cursor: default; }
+.client-btn.ghost { background: transparent; color: var(--mint); border: 1px solid var(--mint); }
+.client-btn:hover { text-decoration: none; }
+.client-actions { display: grid; gap: 10px; margin: 16px 0; }
+.bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin: 10px 0; }
+.bar div { height: 100%; background: var(--mint); transition: width 0.3s; }
+.client-error { color: #f87171; font-weight: 700; }
+.ok-card { border-color: rgba(110, 231, 183, 0.6); }
+.copy-row { display: flex; gap: 8px; }
+.copy-row button {
+  border: 1px solid var(--mint); background: transparent; color: var(--mint); border-radius: 10px;
+  padding: 0 14px; font: 700 15px Nunito, sans-serif; cursor: pointer;
+}
+.progress-steps { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 10px; }
+.progress-steps li { display: flex; align-items: center; gap: 10px; color: var(--mut); font-weight: 700; }
+.progress-steps span { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line); }
+.progress-steps li.done { color: var(--txt); }
+.progress-steps li.done span { background: var(--mint); border-color: var(--mint); }
+.progress-steps li.now { color: var(--mint); }
+.progress-steps li.now span { border-color: var(--mint); box-shadow: 0 0 0 4px rgba(110, 231, 183, 0.2); }
+.video-card { padding: 8px; }
+.video-card video { width: 100%; max-height: 75vh; border-radius: 12px; background: #000; display: block; margin-bottom: 8px; }
+.fb-summary { font-size: 17px; }
+.fb h3 { font: 700 15px Nunito, sans-serif; margin: 14px 0 4px; text-transform: none; letter-spacing: 0; }
+.fb.good h3 { color: var(--mint); }
+.fb.improve h3 { color: #fbbf24; }
+.fb.drill h3 { color: var(--sky); }
+.fb ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.table-wrap { overflow-x: auto; }
+.client-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 14px; }
+.client-table th { color: var(--mint); text-align: right; padding: 6px; font-size: 12px; border-bottom: 1px solid var(--line); }
+.client-table td { text-align: right; padding: 8px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.client-table th:first-child, .client-table td:first-child { text-align: left; }
+.notes { padding-left: 18px; margin: 10px 0 0; }
+.client a.client-btn { color: var(--navy); }
+.client a.client-btn.ghost { color: var(--mint); }

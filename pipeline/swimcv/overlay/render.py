@@ -352,7 +352,9 @@ class Painter:
                 xl = px0 + self.px(1.2)
                 self.text(d, (xl, yy + self.px(0.45 + 0.95)), lab, fl, MINT)
                 vy = yy + self.px(0.45 + 1.2 + 2.2)
-                self.text(d, (xl, vy), val, fv, TEXT)
+                # braçada/ciclo acabou de acontecer: contagem e tempo de ciclo piscam em verde
+                hot = s.get("pulse") and i in (1, 2) and val != "–"
+                self.text(d, (xl, vy), val, fv, MINT if hot else TEXT)
                 if unit:
                     self.text(d, (xl + _text_w(val, fv) + self.px(0.3), vy), unit, fu, MUTED)
                 if i < 3:
@@ -751,7 +753,9 @@ def _lane_start(r: dict):
 
 
 def _lane_rate(r: dict):
-    return (f"{60 / r['tempo']:.0f}", "/min", False) if r["tempo"] else ("–", "", False)
+    # pisca (verde) no instante de cada ciclo marcado
+    pulse = bool(r.get("pulse"))
+    return (f"{60 / r['tempo']:.0f}", "/min", pulse) if r["tempo"] else ("–", "", False)
 
 
 def _lane_time(r: dict):

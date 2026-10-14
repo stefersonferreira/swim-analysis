@@ -255,3 +255,22 @@ table.points tr.bad td { color: var(--bad); }
 .done-box { border-color: rgba(110, 231, 183, 0.35); }
 .steps .what .link { padding: 0; }
 .player-info .toggles label { flex-direction: row; }
+
+.login { max-width: 380px; margin: 60px auto; }
+.login form { display: flex; gap: 8px; margin-top: 16px; }
+.login input { flex: 1; }
+.list-tabs { margin: 10px 0; display: inline-flex; }
+.list td.late { color: var(--bad); font-weight: 700; }
+.ostatus { padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; border: 1px solid var(--line); }
+.ostatus.new { color: var(--warn); border-color: var(--warn); }
+.ostatus.reviewing { color: var(--accent); border-color: var(--accent); }
+.ostatus.delivered { color: var(--ok); border-color: var(--ok); }
+.notes-cell { color: var(--text); opacity: 0.85; max-width: 360px; }
+.paid input { width: 18px; height: 18px; }
+.delivery textarea { display: block; width: 100%; margin-top: 4px; font: inherit; color: inherit;
+  background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(159, 176, 204, 0.3); border-radius: 8px; padding: 8px; }
+.delivery label.block { display: block; margin: 8px 0; }
+.delivery hr { border: 0; border-top: 1px solid var(--line); margin: 14px 0; }
+.order-info { margin-bottom: 10px; padding: 8px 10px; border-radius: 8px; background: var(--panel-2); }
+.order-info .quote { margin-top: 4px; }
+.delivered .row-actions { margin: 8px 0; }
