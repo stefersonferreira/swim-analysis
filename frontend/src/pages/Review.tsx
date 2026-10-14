@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api";
 import CalibrationPanel, { nextPick, type Pick } from "../components/CalibrationPanel";
 import FrameView from "../components/FrameView";
+import MarkingPanel from "../components/MarkingPanel";
 import MetricsPanel from "../components/MetricsPanel";
 import RaceFields from "../components/RaceFields";
 import Timeline, { nearestFrame } from "../components/Timeline";
@@ -294,8 +295,44 @@ export default function Review({ videoId }: { videoId: string }) {
   // Alterações em fila: o servidor recebe na ordem das teclas e a tela nunca volta para
   // uma resposta mais antiga.
   const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const tmpSeq = useRef(0);
   const patch = useCallback(
     (body: Parameters<typeof api.patchEvents>[1]) => {
+      // a tela muda na hora; a resposta do servidor substitui pelo estado real
+      setEvents((prev) => {
+        let next = prev;
+        if (body.delete?.length) next = next.filter((e) => !body.delete!.includes(e.id));
+        for (const u of body.update ?? []) {
+          next = next.map((e) =>
+            e.id !== u.id
+              ? e
+              : {
+                  ...e,
+                  ...(u.frame != null ? { frame: u.frame, t: pts[u.frame] ?? e.t } : {}),
+                  ...(u.lane !== undefined ? { lane: u.lane } : {}),
+                  ...(u.clear_lane ? { lane: null } : {}),
+                },
+          );
+        }
+        for (const c of body.create ?? []) {
+          next = [
+            ...next,
+            {
+              id: `tmp-${++tmpSeq.current}`,
+              type: c.type,
+              frame: c.frame,
+              t: pts[c.frame] ?? 0,
+              image_xy: c.image_xy ?? null,
+              mark_m: c.mark_m ?? null,
+              x_m: null,
+              lane: c.lane ?? null,
+              confidence: 1,
+              source: "manual",
+            },
+          ];
+        }
+        return next;
+      });
       const run = queue.current.then(async () => {
         try {
           const st = await api.patchEvents(videoId, body);
@@ -310,7 +347,7 @@ export default function Review({ videoId }: { videoId: string }) {
       queue.current = run;
       return run;
     },
-    [videoId, apply],
+    [videoId, apply, pts],
   );
 
   // Criação em andamento: um clique no quadro logo após a tecla espera por ela.
@@ -527,6 +564,7 @@ export default function Review({ videoId }: { videoId: string }) {
         </div>
       </div>
 
+      {(video.calibration_ok || video.analysis_status !== "idle") && (
       <div className={`analysis-bar ${video.analysis_status}`}>
         <div>
           <b>Análise automática:</b>{" "}
@@ -555,38 +593,7 @@ export default function Review({ videoId }: { videoId: string }) {
           {analysisActive ? "Analisando…" : video.analysis_status === "idle" ? "Analisar" : "Analisar de novo"}
         </button>
       </div>
-
-      <div className={`export-bar ${video.export_status}`}>
-        <div>
-          <b className="fx-word">Vídeo Fluxi Swim</b>{" "}
-          <span className="muted">
-            {{
-              idle: "MP4 com relógio, balões e números gravados no vídeo, pronto para enviar.",
-              queued: "na fila…",
-              running: `gerando… ${Math.round(100 * (video.export_progress ?? 0))}%`,
-              done: `pronto${video.exported_at ? ` (${new Date(video.exported_at).toLocaleString("pt-BR")})` : ""}. Se mudar as marcações, gere de novo.`,
-              failed: video.export_error ?? "não foi possível gerar",
-            }[video.export_status]}
-          </span>
-          {exportActive && (
-            <div className="export-progress">
-              <div style={{ width: `${100 * (video.export_progress ?? 0)}%` }} />
-            </div>
-          )}
-        </div>
-        <div className="export-actions">
-          {video.export_status === "done" && (
-            <a className="btn small primary" href={`/api/videos/${videoId}/export.mp4`} download>
-              Baixar MP4
-            </a>
-          )}
-          <button className="btn small fx-btn" disabled={exportActive} onClick={runExport}>
-            {exportActive ? "Gerando…" : video.export_status === "done" ? "Gerar de novo" : "Gerar vídeo"}
-          </button>
-        </div>
-      </div>
-
-      <FinalOptions video={video} onSaved={onVideo} onError={(m) => setError(m)} />
+      )}
 
       {editRace && (
         <div className="card">
@@ -666,52 +673,71 @@ export default function Review({ videoId }: { videoId: string }) {
           </FrameView>
           </div>
 
-          <div className="transport">
-            <button className="btn small" onClick={() => { pause(); seek(frame - 1); }} title="Quadro anterior (←)">◀︎ 1</button>
-            {playing ? (
-              <button className="btn small" onClick={pause} title="Pausar (K)">Pausar</button>
-            ) : (
-              <button className="btn small" onClick={() => play(rate)} title="Reproduzir (K)">Reproduzir</button>
-            )}
-            <button className="btn small" onClick={() => { pause(); seek(frame + 1); }} title="Próximo quadro (→)">1 ▶︎</button>
-            <select value={rate} onChange={(e) => setRate(Number(e.target.value))} title="Velocidade">
-              {RATES.map((r) => (
-                <option key={r} value={r}>{r}×</option>
-              ))}
-            </select>
-            <span className="clock">
-              Quadro <b>{frame}</b> / {n - 1} · {fmtTime(pts[frame])}
-              {(() => {
-                const st = events.find((e) => e.type === "start_signal");
-                return st ? ` · prova ${fmtTime(pts[frame] - st.t)}` : "";
-              })()}
-            </span>
-            <label className="zoom">
-              Zoom
-              <select value={zoom} onChange={(e) => setZoom(Number(e.target.value))}>
-                {[1, 2, 4, 8, 16].map((z) => (
-                  <option key={z} value={z}>{z}×</option>
+          <div className="player">
+            <div className="player-main">
+              <button className="pbtn" onClick={() => { pause(); seek(frame - Math.round(fps)); }} title="Voltar 1 segundo">−1 s</button>
+              <button className="pbtn" onClick={() => { pause(); seek(frame - 1); }} title="Quadro anterior">◀ quadro</button>
+              {playing ? (
+                <button className="pbtn play" onClick={pause} data-testid="pause">❚❚ Pausar</button>
+              ) : (
+                <button className="pbtn play" onClick={() => play(rate)} data-testid="play">▶ Reproduzir</button>
+              )}
+              <button className="pbtn" onClick={() => { pause(); seek(frame + 1); }} title="Próximo quadro">quadro ▶</button>
+              <button className="pbtn" onClick={() => { pause(); seek(frame + Math.round(fps)); }} title="Avançar 1 segundo">+1 s</button>
+              <div className="speeds" role="group" aria-label="Velocidade">
+                {RATES.map((r) => (
+                  <button
+                    key={r}
+                    className={r === rate ? "on" : ""}
+                    onClick={() => { setRate(r); if (playing) play(r); }}
+                  >
+                    {r === 0.25 ? "¼×" : r === 0.5 ? "½×" : `${r}×`}
+                  </button>
                 ))}
-              </select>
-            </label>
-            <label className="zoom">
-              <input type="checkbox" checked={showGrid} onChange={(e) => setShowGrid(e.target.checked)} /> Grade (G)
-            </label>
-            {mode === "review" && (
-              <>
-                <label className="zoom">
-                  <input
-                    type="checkbox"
-                    checked={showOverlay}
-                    onChange={(e) => setShowOverlay(e.target.checked)}
-                  />{" "}
-                  Sobreposição (V)
+              </div>
+            </div>
+            <input
+              className="scrub"
+              type="range"
+              min={0}
+              max={n - 1}
+              value={frame}
+              onChange={(e) => { pause(); seek(Number(e.target.value)); }}
+              aria-label="Posição no vídeo"
+            />
+            <div className="player-info">
+              <span className="clock">
+                <b>{fmtTime(pts[frame])}</b>
+                {(() => {
+                  const st = events.find((e) => e.type === "start_signal");
+                  return st ? ` · prova ${fmtTime(pts[frame] - st.t)}` : "";
+                })()}
+                <span className="muted"> · quadro {frame}/{n - 1}</span>
+              </span>
+              <span className="toggles">
+                {mode === "review" && (
+                  <label>
+                    <input type="checkbox" checked={showOverlay} onChange={(e) => setShowOverlay(e.target.checked)} /> Sobreposição
+                  </label>
+                )}
+                <label>
+                  <input type="checkbox" checked={showGrid} onChange={(e) => setShowGrid(e.target.checked)} /> Grade
                 </label>
-                <button className="btn small fx-btn" onClick={togglePresent} title="Tela cheia com a sobreposição, sem marcações de edição">
-                  {present ? "Sair da apresentação" : "Modo apresentação"}
-                </button>
-              </>
-            )}
+                <label>
+                  Zoom da linha do tempo
+                  <select value={zoom} onChange={(e) => setZoom(Number(e.target.value))}>
+                    {[1, 2, 4, 8, 16].map((z) => (
+                      <option key={z} value={z}>{z}×</option>
+                    ))}
+                  </select>
+                </label>
+                {mode === "review" && (
+                  <button className="btn small fx-btn" onClick={togglePresent} title="Tela cheia com a sobreposição, sem marcações de edição">
+                    {present ? "Sair da apresentação" : "Tela cheia"}
+                  </button>
+                )}
+              </span>
+            </div>
           </div>
 
           <Timeline
@@ -735,44 +761,85 @@ export default function Review({ videoId }: { videoId: string }) {
         <aside className="side">
           {mode === "review" ? (
             <>
-              <section className="card">
-                <h3>Marcar evento no quadro atual</h3>
+              <MarkingPanel
+                race={race}
+                events={events}
+                frame={frame}
+                t={pts[frame] ?? 0}
+                lane={markLane}
+                onLane={setMarkLane}
+                onMark={(type) => void createEvent(type)}
+                onMove={(id) => { if (id.startsWith("tmp-")) return; pause(); void patch({ update: [{ id, frame }] }); }}
+                onDelete={(id) => {
+                  if (id.startsWith("tmp-")) return;
+                  void patch({ delete: [id] });
+                  if (id === selectedId) setSelectedId(null);
+                }}
+                onGo={(e) => { setSelectedId(e.id); setCycleType(e.type); pause(); seek(e.frame); }}
+                selectedId={selectedId}
+              />
+
+              <section className="card final" data-testid="final-card">
+                <h3>Vídeo e relatório</h3>
+                <p className="muted small">
+                  {{
+                    idle: "Quando terminar de marcar, gere o vídeo com os números gravados.",
+                    queued: "na fila…",
+                    running: `gerando… ${Math.round(100 * (video.export_progress ?? 0))}%`,
+                    done: `Vídeo pronto${video.exported_at ? ` (${new Date(video.exported_at).toLocaleString("pt-BR")})` : ""}. Mudou marcações? Gere de novo.`,
+                    failed: video.export_error ?? "não foi possível gerar",
+                  }[video.export_status]}
+                </p>
+                {exportActive && (
+                  <div className="export-progress">
+                    <div style={{ width: `${100 * (video.export_progress ?? 0)}%` }} />
+                  </div>
+                )}
+                <div className="final-actions">
+                  <button className="btn fx-btn" disabled={exportActive} onClick={runExport} data-testid="export">
+                    {exportActive ? "Gerando…" : video.export_status === "done" ? "Gerar de novo" : "Gerar vídeo"}
+                  </button>
+                  {video.export_status === "done" && (
+                    <a className="btn primary" href={`/api/videos/${videoId}/export.mp4`} download>
+                      Baixar MP4
+                    </a>
+                  )}
+                  <a className="btn" href={`/api/videos/${videoId}/report.html`} target="_blank" rel="noreferrer">
+                    Abrir relatório
+                  </a>
+                </div>
+                <FinalOptions video={video} onSaved={onVideo} onError={(m) => setError(m)} />
+              </section>
+
+              <details className="card more">
+                <summary>Outras marcações</summary>
                 <div className="keys">
-                  {(Object.keys(EVENT_LABEL) as EventType[])
+                  {(["breakout", "mark_pass", "wall_feet", "wall_hands"] as EventType[])
                     .filter((t) => race.stroke === "breaststroke" || t !== "wall_hands")
                     .map((t) => (
-                      <button key={t} className="key" onClick={() => createEvent(t)}>
-                        <kbd style={{ borderColor: EVENT_COLOR[t] }}>{EVENT_KEY[t]}</kbd> {EVENT_LABEL[t]}
+                      <button key={t} className="btn small" onClick={() => createEvent(t)}>
+                        <span className="dot" style={{ background: EVENT_COLOR[t] }} /> {EVENT_LABEL[t]}
                       </button>
                     ))}
                 </div>
                 <label className="inline small">
-                  Raia (vários atletas no vídeo):
-                  <select
-                    value={markLane ?? ""}
-                    onChange={(e) => setMarkLane(e.target.value ? Number(e.target.value) : null)}
-                    data-testid="mark-lane"
-                  >
-                    <option value="">Atleta da prova</option>
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-                      <option key={n} value={n}>Raia {n}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="inline small">
-                  Marca para “P”:
+                  Passagem por marca:
                   <select value={markM} onChange={(e) => setMarkM(Number(e.target.value))}>
                     {[5, 10, 15, 20].map((m) => (
                       <option key={m} value={m}>{m} m da parede de impulsão</option>
                     ))}
                   </select>
                 </label>
+              </details>
+
+              <details className="card more">
+                <summary>Atalhos de teclado (opcional)</summary>
                 <p className="muted small">
-                  ← → quadro · Shift ±10 · K/espaço pausa · L avança · J volta · [ ] anterior/próximo
-                  do tipo · “.” move o selecionado para cá · Del apaga · N próximo alerta · 1–8 raia dos próximos eventos (0 volta ao atleta da
-                  prova; a largada vale para todas)
+                  ← → quadro · Shift ±10 · espaço pausa/reproduz · 1–8 escolhe a raia · O saída
+                  do bloco · E entrada · S ciclo/braçada · F toque final · I apito · Del apaga o
+                  selecionado · “.” move o selecionado para o quadro atual
                 </p>
-              </section>
+              </details>
 
               {selected && (
                 <section className="card selected">
@@ -850,9 +917,10 @@ export default function Review({ videoId }: { videoId: string }) {
                 </section>
               )}
 
-              <section className="card">
+              <details className="card more" open={!events.some((e) => e.lane != null)}>
+                <summary>Números calculados{race.lane ? ` · raia ${race.lane}` : ""}</summary>
                 <MetricsPanel metrics={metrics} race={race} />
-              </section>
+              </details>
             </>
           ) : (
             <section className="card">
@@ -905,9 +973,9 @@ function FinalOptions(props: { video: Video; onSaved: (v: Video) => void; onErro
     }
   };
   return (
-    <details className="card final-options" data-testid="final-options">
+    <details className="final-options" data-testid="final-options">
       <summary>
-        Ajustes do vídeo final e relatório
+        Ajustes do que aparece
         {(video.strokes_partial || (video.review_notes ?? []).length > 0) && (
           <span className="muted small"> · {video.strokes_partial ? "ciclos só num trecho" : ""}
             {video.strokes_partial && (video.review_notes ?? []).length ? " · " : ""}
@@ -933,10 +1001,7 @@ function FinalOptions(props: { video: Video; onSaved: (v: Video) => void; onErro
         <button className="btn small primary" disabled={!dirty || saving} onClick={save}>
           {saving ? "Salvando…" : "Salvar"}
         </button>
-        <a className="btn small" href={`/api/videos/${video.id}/report.html`} target="_blank" rel="noreferrer">
-          Abrir relatório
-        </a>
-        <span className="muted small">Depois de salvar, gere o vídeo de novo para o MP4 mudar.</span>
+        <span className="muted small">Depois de salvar, gere o vídeo de novo.</span>
       </div>
     </details>
   );

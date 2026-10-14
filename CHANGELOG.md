@@ -4,6 +4,11 @@
 
 Várias raias no mesmo vídeo (treino com saídas lado a lado).
 
+- Revisão sem teclado: player com botões grandes e barra de posição; vídeo em pé cabe na tela;
+  painel "Marcação" com atletas (+ Raia), passo a passo da prova, próximo passo com dica e
+  botão "Marcar", correção por "Mudar p/ cá" e "✕". Marcar responde na hora (a tela não espera
+  o servidor). "Vídeo e relatório" foi para o painel lateral. Teclas continuam como atalhos.
+
 - Evento com raia (`Event.lane`, schema_version 2; migração 0004). Sem raia = o atleta da
   prova; a largada sem raia vale para todas.
 - Revisão: teclas 1–8 escolhem a raia dos próximos eventos (0 volta ao atleta da prova);

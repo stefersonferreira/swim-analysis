@@ -65,8 +65,12 @@ Vídeos e resultados ficam em `./data`; o banco, no volume `pgdata`.
 3. **Análise automática:** roda sozinha ao salvar a calibração (precisa da raia nos dados da
    prova) e aparece na barra "Análise automática". O marcador rosa mostra onde o sistema acha
    que está a cabeça do nadador; eventos automáticos aparecem mais claros na linha do tempo.
-4. **Revisão** (aba): confira os alertas e corrija o que precisar pelo teclado. Para criar um
-   evento, marque no quadro certo e clique na cabeça do nadador para dar a posição. O que você
+4. **Revisão** (aba): tudo por clique. Use os botões do player (−1 s, quadro a quadro,
+   velocidades ¼× e ½×) ou arraste a barra até o momento certo. O painel **Marcação** mostra o
+   passo a passo da prova (apito, saída do bloco, entrada, ciclos, viradas, toque) e o próximo
+   que falta, com a dica de qual quadro escolher: toque em "Marcar" e ele é registrado no quadro
+   atual. Para corrigir, toque no horário do momento, ajuste o quadro e use "Mudar p/ cá"; "✕"
+   apaga. Vários atletas no vídeo: "+ Raia" para cada um e marque um de cada vez. O que você
    corrige nunca é sobrescrito por uma nova análise.
 5. **Sobreposição e vídeo:** durante a reprodução aparecem relógio de prova, fase, braçadas,
    tempo de ciclo, velocidade, balões que seguem o nadador (breakout, 15 m, parciais, chegada)
@@ -81,6 +85,8 @@ Vídeos e resultados ficam em `./data`; o banco, no volume `pgdata`.
    Escreva observações, uma por linha, que entram no resumo do vídeo e no relatório. "Abrir
    relatório" mostra resultados, pontos para o técnico e momentos marcados; "Salvar em PDF"
    gera o arquivo. Depois de mudar, gere o vídeo de novo.
+
+Atalhos de teclado (opcionais, para quem preferir):
 
 | Tecla | Ação |
 | --- | --- |

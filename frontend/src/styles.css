@@ -175,3 +175,83 @@ table.points tr.bad td { color: var(--bad); }
   display: block; width: 100%; margin-top: 4px; font: inherit; color: inherit;
   background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(159, 176, 204, 0.3); border-radius: 8px; padding: 8px;
 }
+
+/* ---- revisão: vídeo cabe na tela, player com botões grandes, marcação guiada ---- */
+.stage .present-box:not(:fullscreen) .frame {
+  width: min(100%, calc((100vh - 330px) * var(--ar)));
+  margin: 0 auto;
+}
+.player { margin: 10px 0; display: grid; gap: 8px; }
+.player-main { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
+.pbtn {
+  min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--line, #2a3550);
+  background: rgba(255, 255, 255, 0.04); color: inherit; font: inherit; font-weight: 700; cursor: pointer;
+}
+.pbtn:hover { background: rgba(255, 255, 255, 0.09); }
+.pbtn.play { background: #6ee7b7; color: #0b1220; border-color: #6ee7b7; min-width: 150px; }
+.speeds { display: inline-flex; border: 1px solid var(--line, #2a3550); border-radius: 10px; overflow: hidden; }
+.speeds button { min-height: 44px; padding: 0 12px; background: transparent; color: inherit; border: 0; font: inherit; cursor: pointer; }
+.speeds button.on { background: rgba(110, 231, 183, 0.18); color: #6ee7b7; font-weight: 800; }
+.scrub { width: 100%; accent-color: #6ee7b7; height: 28px; }
+.player-info { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+.player-info .clock { font-variant-numeric: tabular-nums; }
+.player-info .toggles { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; font-size: 13px; color: var(--muted); }
+.player-info .toggles label { display: inline-flex; align-items: center; gap: 6px; }
+.player-info select { width: auto; }
+
+.side { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; }
+.marking h3 { margin-bottom: 8px; }
+.athletes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chip {
+  min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line, #2a3550);
+  background: transparent; color: inherit; font: inherit; font-weight: 700; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.chip.on { background: rgba(110, 231, 183, 0.16); border-color: #6ee7b7; color: #6ee7b7; }
+.chip.ghost { border-style: dashed; color: var(--muted); }
+.chip.small { min-height: 34px; padding: 0 12px; }
+.add-lane { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.lane-dot {
+  display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+  background: #f5a524; color: #0b1220; font-weight: 900; font-size: 12px;
+}
+.next-step {
+  margin: 12px 0; padding: 12px; border-radius: 12px;
+  border: 1px solid rgba(110, 231, 183, 0.5); background: rgba(110, 231, 183, 0.07);
+}
+.next-step b { font-size: 17px; }
+.next-step p { margin: 4px 0 10px; }
+.btn.big { width: 100%; min-height: 48px; font-size: 15px; }
+.steps { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 2px; }
+.steps li {
+  display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: start;
+  padding: 10px 6px; border-radius: 10px;
+}
+.steps li.next { background: rgba(110, 231, 183, 0.06); }
+.steps .mark {
+  width: 22px; height: 22px; border-radius: 50%; border: 2px solid; display: grid; place-items: center;
+  font-size: 13px; font-weight: 900; margin-top: 1px;
+}
+.steps li.done .mark { background: rgba(110, 231, 183, 0.2); color: #6ee7b7; }
+.steps .what > div:first-child { font-weight: 700; }
+.steps .acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.steps .acts .btn { min-height: 36px; }
+.btn.ghost { background: transparent; }
+.link.sel, .tchip.sel { color: #6ee7b7; font-weight: 800; }
+.cycle-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.tchip {
+  font: inherit; font-size: 12px; padding: 2px 8px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--line, #2a3550); background: transparent; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.more summary { cursor: pointer; font-weight: 700; }
+.more[open] summary { margin-bottom: 10px; }
+.more .keys { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+@media (max-width: 1100px) { .side { position: static; max-height: none; } }
+
+.final-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.final .final-options { margin-top: 6px; }
+.done-box { border-color: rgba(110, 231, 183, 0.35); }
+.steps .what .link { padding: 0; }
+.player-info .toggles label { flex-direction: row; }

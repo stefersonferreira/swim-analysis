@@ -121,6 +121,19 @@ def main(video: str, out: str = "e2e-shots") -> None:
         assert frames == [125, 140, 155, 170, 185, 200, 215, 230, 260], frames
         page.screenshot(path=shots / "05-metricas.png", full_page=True)
 
+        # Marcação guiada, só com cliques: o próximo passo que falta é a entrada na água
+        expect(page.locator(".next-step b")).to_have_text("Entrou na água")
+        page.get_by_role("button", name="quadro ▶").click()
+        page.click("[data-testid=mark-next]")
+        expect(page.locator(".timeline rect[data-ev]")).to_have_count(13)
+        expect(page.locator(".steps li.done")).to_have_count(4)  # apito, bloco, entrada, braçadas
+        # outra raia: o passo a passo recomeça para ela (a largada vale para todas)
+        page.click("[data-testid=add-lane]")
+        page.locator(".add-lane").get_by_role("button", name="4").click()
+        expect(page.locator(".next-step b")).to_have_text("Saiu do bloco")
+        expect(page.locator(".steps li.done")).to_have_count(1)
+        page.screenshot(path=shots / "06-marcacao-guiada.png")
+
         if errors:
             raise SystemExit(f"erros de JavaScript: {errors}")
         browser.close()
