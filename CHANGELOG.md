@@ -13,6 +13,9 @@ Várias raias no mesmo vídeo (treino com saídas lado a lado).
   distância por ciclo quando há calibração. "–" = não visto no vídeo.
 - Sobreposição (tela e MP4): quadro ao vivo por raia (braçadas, ritmo, tempo ao chegar) e
   comparativo lado a lado no fim, com observações de quem revisou (`notes`).
+- Correção: "Gerar vídeo" travava quando o desenho de um quadro falhava (o ffmpeg ficava
+  esperando quadros); agora o erro aparece. O fim com resumo não exige mais a chegada do
+  atleta da prova.
 
 ## 0.3.1 — 2026-10-14
 

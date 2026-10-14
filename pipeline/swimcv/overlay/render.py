@@ -11,6 +11,7 @@ com o resumo da prova.
 
 from __future__ import annotations
 
+import contextlib
 import math
 import subprocess
 from collections.abc import Callable
@@ -818,7 +819,9 @@ def render_mp4(
                         dark = Image.blend(
                             last.convert("RGB"), Image.new("RGB", last.size, NAVY), 0.45
                         )
-                        t_end = max(float(pts[-1]), tl["t_finish"] + CALLOUT_S * 1.6)
+                        t_end = float(pts[-1])
+                        if tl.get("t_finish") is not None:
+                            t_end = max(t_end, tl["t_finish"] + CALLOUT_S * 1.6)
                     img = painter.draw(dark, t_end, force_summary=True)
                 proc.stdin.write(img.tobytes())
                 if progress and i % 15 == 0:
@@ -827,6 +830,11 @@ def render_mp4(
         except BrokenPipeError:
             pass
         finally:
+            # fecha a entrada antes de ler o erro: com ela aberta o ffmpeg espera mais
+            # quadros e a leitura nunca termina (travava quando o desenho falhava)
+            if proc.stdin and not proc.stdin.closed:
+                with contextlib.suppress(BrokenPipeError):
+                    proc.stdin.close()
             err = proc.stderr.read().decode(errors="replace") if proc.stderr else ""
             code = proc.wait()
     if code != 0:

@@ -108,3 +108,52 @@ def test_lanes_board_and_comparison_summary():
     assert live[300:350, 100:540].mean() < 0.05  # sem barra de progresso de um atleta só
     end = np.abs(np.asarray(Painter(tl, 640, 360).draw(frame, 23.35), int) - base).sum(axis=2) > 30
     assert end[150:210, 220:420].mean() > 0.5  # comparativo no meio
+
+
+@pytest.mark.skipif(not shutil.which("ffmpeg"), reason="ffmpeg não instalado")
+def test_render_mp4_lanes_without_main_finish(tmp_path):
+    """Várias raias sem chegada do atleta da prova: o fim com o comparativo é gravado
+    (antes quebrava em t_finish=None e travava esperando o ffmpeg)."""
+    from swimcv.metrics import athlete_events
+    from tests.unit.test_lanes import three_lanes
+
+    src = tmp_path / "proxy.mp4"
+    subprocess.run(
+        ["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "testsrc=size=320x180:rate=30:duration=1",
+         "-c:v", "libx264", "-g", "1", "-pix_fmt", "yuv420p", str(src)],
+        check=True,
+    )  # fmt: skip
+    race, evs = three_lanes()
+    tl = build_timeline(
+        race,
+        evs,
+        compute_metrics(race, athlete_events(evs, None, None)),
+        width=320,
+        height=180,
+        duration_s=1.0,
+    )
+    assert tl["t_finish"] is None
+    out = render_mp4(src, np.arange(30) / 30, tl, tmp_path / "o.mp4", fps=30)
+    with av.open(str(out)) as c:
+        n = sum(1 for _ in c.decode(c.streams.video[0]))
+    assert n == 30 + int(END_HOLD_S * 30)
+
+
+def test_render_mp4_drawing_error_does_not_hang(tmp_path, monkeypatch):
+    """Erro ao desenhar um quadro sobe como erro, sem deixar o ffmpeg esperando."""
+    if not shutil.which("ffmpeg"):
+        pytest.skip("ffmpeg não instalado")
+    src = tmp_path / "proxy.mp4"
+    subprocess.run(
+        ["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "testsrc=size=320x180:rate=30:duration=1",
+         "-c:v", "libx264", "-g", "1", "-pix_fmt", "yuv420p", str(src)],
+        check=True,
+    )  # fmt: skip
+
+    def boom(*a, **k):
+        raise ValueError("falha de desenho")
+
+    monkeypatch.setattr(Painter, "draw", boom)
+    with pytest.raises(ValueError):
+        render_mp4(src, np.arange(30) / 30, timeline(), tmp_path / "o.mp4", fps=30)
+    assert not (tmp_path / "o.mp4").exists()
