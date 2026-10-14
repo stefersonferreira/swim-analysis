@@ -39,6 +39,10 @@ class Video(Base):
     meta: Mapped[dict | None] = mapped_column(JSON)  # swimcv.contracts.VideoMeta
     calibration: Mapped[dict | None] = mapped_column(JSON)  # swimcv.contracts.Calibration
     pool_id: Mapped[int | None] = mapped_column(ForeignKey("pools.id", ondelete="SET NULL"))
+    # análise automática: idle | queued | running | done | failed
+    analysis_status: Mapped[str] = mapped_column(String(20), default="idle", server_default="idle")
+    analysis_notes: Mapped[list | None] = mapped_column(JSON)
+    analyzed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, onupdate=_now

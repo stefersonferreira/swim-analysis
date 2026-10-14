@@ -89,3 +89,17 @@ def make_vfr_video(path: Path, n_frames: int = 90, audio: bool = True) -> None:
 def has_ffmpeg():
     if not shutil.which("ffmpeg"):
         pytest.skip("ffmpeg não instalado")
+
+
+@pytest.fixture(scope="session")
+def synthetic_videos(tmp_path_factory, has_ffmpeg):
+    """Renderiza uma vez por sessão: prova sintética com câmera parada e em movimento."""
+    from tests.synthetic import Truth, render
+
+    d = tmp_path_factory.mktemp("synthetic")
+    out = {}
+    for name, moving, seed in (("static", False, 3), ("moving", True, 0)):
+        p = d / f"{name}.mp4"
+        render(p, moving=moving, seed=seed)
+        out[name] = (p, moving, Truth())
+    return out

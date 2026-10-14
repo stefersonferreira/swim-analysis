@@ -52,15 +52,36 @@ def video_dict(v: Video) -> dict:
         "race": v.race,
         "meta": v.meta,
         "has_calibration": bool(v.calibration),
+        "calibration_ok": calibration_accepted(v),
         "pool_id": v.pool_id,
+        "analysis_status": v.analysis_status or "idle",
+        "analysis_notes": v.analysis_notes or [],
+        "analyzed_at": v.analyzed_at.isoformat() if v.analyzed_at else None,
         "created_at": v.created_at.isoformat() if v.created_at else None,
     }
+
+
+def calibration_accepted(v: Video) -> bool:
+    return bool(v.calibration) and any(r.get("accepted") for r in v.calibration.get("results", []))
 
 
 def enqueue_ingest(video_id: str) -> None:
     from app.worker import ingest
 
     ingest.delay(video_id)
+
+
+def enqueue_analysis(db: Session, v: Video) -> bool:
+    """Põe a análise automática na fila se houver calibração aceita e raia informada."""
+    if v.status != "ready" or not calibration_accepted(v) or not (v.race or {}).get("lane"):
+        return False
+    from app.worker import analyze
+
+    v.analysis_status, v.analysis_notes = "queued", []
+    db.commit()
+    analyze.delay(v.id)
+    db.refresh(v)
+    return True
 
 
 @router.post("", status_code=201)
@@ -125,6 +146,20 @@ def update_race(video_id: str, race: RaceInfo, db: Session = Depends(get_db)) ->
     v.race = race.model_dump(mode="json")
     audit(db, v.id, "race", None, "update", before, v.race)
     db.commit()
+    if (before or {}).get("lane") != race.lane or (before or {}).get("stroke") != race.stroke:
+        enqueue_analysis(db, v)
+    return video_dict(v)
+
+
+@router.post("/{video_id}/analyze", status_code=202)
+def analyze_video(video_id: str, db: Session = Depends(get_db)) -> dict:
+    v = get_video(video_id, db)
+    require_ready(v)
+    if not calibration_accepted(v):
+        raise HTTPException(409, "Calibre a piscina antes (aba Calibração).")
+    if not (v.race or {}).get("lane"):
+        raise HTTPException(409, "Informe a raia do nadador nos dados da prova.")
+    enqueue_analysis(db, v)
     return video_dict(v)
 
 
@@ -132,7 +167,9 @@ def update_race(video_id: str, race: RaceInfo, db: Session = Depends(get_db)) ->
 def reingest(video_id: str, db: Session = Depends(get_db)) -> dict:
     v = get_video(video_id, db)
     readers.drop(v.id)
+    shutil.rmtree(paths_for(v.id).root / "analysis", ignore_errors=True)
     v.status = "uploaded"
+    v.analysis_status = "idle"
     db.commit()
     enqueue_ingest(v.id)
     return video_dict(v)

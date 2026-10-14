@@ -88,7 +88,7 @@ jobs:
           for t in worker worker-gpu; do
             echo "=== testes em $t" | tee -a /tmp/ci.log
             docker run --rm -v "$PWD/tests:/app/tests" ghcr.io/stefersonferreira/swim-analysis-$t:ci \
-              sh -c "ffmpeg -version | head -1 && uv pip install --python /opt/venv -q pytest && python -m pytest -q -rs tests/unit -p no:cacheprovider" \
+              sh -c "ffmpeg -version | head -1 && uv pip install --python /opt/venv -q pytest && python -m pytest -q -rs tests/unit -m \"not slow\" -p no:cacheprovider" \
               2>&1 | tee -a /tmp/ci.log
           done
       - name: Subir com docker compose (perfil CPU)

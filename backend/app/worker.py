@@ -9,7 +9,18 @@ from celery import Celery
 
 from app.config import get_settings
 from app.db import Video, new_session
+from app.services import (
+    calibration_of,
+    has_start_signal,
+    mark_analyzed,
+    race_of,
+    replace_auto_events,
+)
+from swimcv import contracts as c
+from swimcv.analyze import AnalysisError, detect_start_signal
+from swimcv.analyze import run as run_analysis
 from swimcv.ingest import IngestError, ingest_video
+from swimcv.ingest.frames import read_frame_table
 from swimcv.storage import VideoPaths
 
 settings = get_settings()
@@ -32,7 +43,7 @@ def ingest(video_id: str) -> str:
             return "missing"
         video.status, video.error = "processing", None
         db.commit()
-        paths = VideoPaths.for_video(settings.data_dir, video_id)
+        paths = VideoPaths.for_video(get_settings().data_dir, video_id)
         try:
             meta, warnings = ingest_video(paths, strict=settings.strict_ingest)
         except IngestError as exc:
@@ -47,7 +58,68 @@ def ingest(video_id: str) -> str:
         video.warnings = warnings
         video.status = "ready"
         db.commit()
+        _auto_start(db, video, paths)
         return "ready"
+    finally:
+        db.close()
+
+
+def _auto_start(db, video: Video, paths: VideoPaths) -> None:
+    """Largada pelo áudio logo depois da ingestão (não precisa de calibração)."""
+    if not video.meta or not video.meta.get("has_audio") or has_start_signal(db, video.id):
+        return
+    try:
+        t, conf, _ = detect_start_signal(paths)
+    except Exception:  # áudio estranho não pode derrubar a ingestão
+        return
+    if t is None:
+        return
+    pts = read_frame_table(paths.frames)["pts"].to_numpy()
+    frame = int(abs(pts - t).argmin())
+    replace_auto_events(
+        db,
+        video,
+        [
+            c.Event(
+                type=c.EventType.START_SIGNAL,
+                frame=frame,
+                t=t,
+                confidence=conf,
+                source=c.EventSource.AUTO,
+            )
+        ],
+    )
+    db.commit()
+
+
+@celery_app.task(name="swim.analyze")
+def analyze(video_id: str) -> str:
+    """Análise automática completa: trajetória e eventos."""
+    db = new_session()
+    try:
+        video = db.get(Video, video_id)
+        if video is None or video.status != "ready":
+            return "not_ready"
+        video.analysis_status, video.analysis_notes = "running", []
+        db.commit()
+        paths = VideoPaths.for_video(get_settings().data_dir, video_id)
+        try:
+            cal = calibration_of(video)
+            if cal is None:
+                raise AnalysisError("Calibre a piscina antes (aba Calibração).")
+            events, notes = run_analysis(paths, race_of(video), cal)
+        except AnalysisError as exc:
+            mark_analyzed(video, "failed", [str(exc)])
+            db.commit()
+            return "failed"
+        except Exception as exc:
+            mark_analyzed(video, "failed", [f"Erro inesperado na análise: {exc}"[:500]])
+            db.commit()
+            raise
+        n = replace_auto_events(db, video, events)
+        mark_analyzed(video, "done", [f"{n} eventos automáticos gerados.", *notes])
+        db.commit()
+        return "done"
     finally:
         db.close()
 

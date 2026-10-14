@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from bisect import bisect_left
 
+import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.videos import get_video, paths_for, require_ready
+from app.api.videos import enqueue_analysis, get_video, paths_for, require_ready, video_dict
 from app.db import Event, Pool, get_db
 from app.services import (
     audit,
@@ -20,6 +21,8 @@ from app.services import (
     save_calibration,
 )
 from swimcv import contracts as c
+from swimcv.analyze import AnalysisFiles, load_homographies
+from swimcv.calibration import grid_lines
 from swimcv.ingest.frames import read_frame_table
 
 router = APIRouter(prefix="/api", tags=["review"])
@@ -154,7 +157,37 @@ def put_calibration(video_id: str, body: CalibrationIn, db: Session = Depends(ge
         v.pool_id = body.pool_id
     save_calibration(db, v, c.Calibration(pool=body.pool, anchors=body.anchors))
     db.commit()
-    return {**calibration_payload(v), **metrics_payload(db, v)}
+    enqueue_analysis(db, v)
+    return {**calibration_payload(v), **metrics_payload(db, v), "video": video_dict(v)}
+
+
+@router.get("/videos/{video_id}/trajectory.json")
+def trajectory(video_id: str, db: Session = Depends(get_db)) -> dict:
+    get_video(video_id, db)
+    tr = AnalysisFiles.of(paths_for(video_id)).trajectory
+    if not tr.exists():
+        return {"frames": []}
+    df = pd.read_parquet(tr)
+    cols = ["frame", "head_x", "confidence", "head_img_x", "head_img_y"]
+    return {"frames": df[cols].round(3).to_dict(orient="list")}
+
+
+@router.get("/videos/{video_id}/grid/{frame}")
+def frame_grid(video_id: str, frame: int, db: Session = Depends(get_db)) -> dict:
+    """Grade da piscina no quadro pedido (com câmera em movimento, cada quadro tem a sua)."""
+    v = get_video(video_id, db)
+    cal = calibration_of(v)
+    if cal is None:
+        return {"lines": []}
+    H = load_homographies(paths_for(video_id))
+    if H is not None and 0 <= frame < len(H):
+        res = c.AnchorResult(frame=frame, homography=H[frame].tolist(), accepted=True)
+    else:
+        ok = [r for r in cal.results if r.accepted and r.homography is not None]
+        if not ok:
+            return {"lines": []}
+        res = min(ok, key=lambda r: abs(r.frame - frame))
+    return {"lines": grid_lines(cal, res)}
 
 
 # ---- Perfis de piscina ---------------------------------------------------------------------
@@ -194,7 +227,8 @@ def copy_calibration(video_id: str, other_id: str, db: Session = Depends(get_db)
     save_calibration(db, v, cal.model_copy(update={"anchors": anchors}))
     v.pool_id = src.pool_id
     db.commit()
-    return {**calibration_payload(v), **metrics_payload(db, v)}
+    enqueue_analysis(db, v)
+    return {**calibration_payload(v), **metrics_payload(db, v), "video": video_dict(v)}
 
 
 def nearest_frame(pts: list[float], t: float) -> int:
