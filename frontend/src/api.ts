@@ -2,9 +2,11 @@ import type {
   Anchor,
   CalibrationState,
   EventType,
+  GridLine,
   PoolProfile,
   RaceInfo,
   ReviewState,
+  TrajectoryData,
   Video,
 } from "./types";
 
@@ -61,15 +63,20 @@ export const api = {
     }),
   calibration: (id: string) => req<CalibrationState>(`/api/videos/${id}/calibration`),
   saveCalibration: (id: string, pool: PoolProfile, anchors: Anchor[]) =>
-    req<CalibrationState & ReviewState>(`/api/videos/${id}/calibration`, {
+    req<CalibrationState & ReviewState & { video: Video }>(`/api/videos/${id}/calibration`, {
       method: "PUT",
       body: JSON.stringify({ pool, anchors }),
     }),
   copyCalibration: (id: string, from: string) =>
-    req<CalibrationState & ReviewState>(`/api/videos/${id}/calibration/copy-from/${from}`, {
+    req<CalibrationState & ReviewState & { video: Video }>(`/api/videos/${id}/calibration/copy-from/${from}`, {
       method: "POST",
     }),
   worker: () => req<Record<string, unknown>>("/api/system/worker"),
+  analyze: (id: string) => req<Video>(`/api/videos/${id}/analyze`, { method: "POST" }),
+  trajectory: (id: string) =>
+    req<{ frames: TrajectoryData | [] }>(`/api/videos/${id}/trajectory.json`),
+  grid: (id: string, frame: number) =>
+    req<{ lines: GridLine[] }>(`/api/videos/${id}/grid/${frame}`),
 };
 
 export function frameUrl(id: string, n: number) {

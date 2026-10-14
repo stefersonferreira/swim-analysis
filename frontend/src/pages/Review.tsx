@@ -17,6 +17,7 @@ import type {
   RaceInfo,
   ReviewState,
   SwimEvent,
+  TrajectoryData,
   Video,
 } from "../types";
 
@@ -69,6 +70,10 @@ export default function Review({ videoId }: { videoId: string }) {
   const [calDirty, setCalDirty] = useState(false);
   const [calBusy, setCalBusy] = useState(false);
   const [calMsg, setCalMsg] = useState<string | null>(null);
+  // análise automática
+  const [traj, setTraj] = useState<TrajectoryData | null>(null);
+  const [frameGrid, setFrameGrid] = useState<GridLine[] | null>(null);
+  const gridCache = useRef(new Map<number, GridLine[]>());
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const reverseTimer = useRef<number | null>(null);
@@ -87,13 +92,15 @@ export default function Review({ videoId }: { videoId: string }) {
         const v = await api.getVideo(videoId);
         if (!alive) return;
         setVideo(v);
-        const [f, wf, st, cal] = await Promise.all([
+        const [f, wf, st, cal, tr] = await Promise.all([
           api.frames(videoId),
           api.waveform(videoId),
           api.events(videoId),
           api.calibration(videoId),
+          api.trajectory(videoId),
         ]);
         if (!alive) return;
+        setTraj(Array.isArray(tr.frames) ? null : tr.frames);
         setPts(f.pts);
         setWaveform(wf);
         apply(st);
@@ -109,6 +116,51 @@ export default function Review({ videoId }: { videoId: string }) {
       alive = false;
     };
   }, [videoId, apply]);
+
+  // ---- Análise automática -----------------------------------------------------------
+  const analysisActive =
+    video?.analysis_status === "queued" || video?.analysis_status === "running";
+
+  const refreshAnalysis = useCallback(async () => {
+    apply(await api.events(videoId));
+    const t = await api.trajectory(videoId);
+    setTraj(Array.isArray(t.frames) ? null : t.frames);
+    gridCache.current.clear();
+    setFrameGrid(null);
+  }, [videoId, apply]);
+
+  const onVideo = useCallback(
+    (v: Video) => {
+      const was = video?.analysis_status;
+      setVideo(v);
+      if (v.analysis_status === "done" && was !== "done") void refreshAnalysis();
+    },
+    [video, refreshAnalysis],
+  );
+
+  useEffect(() => {
+    if (!analysisActive) return;
+    const id = window.setInterval(async () => {
+      try {
+        const v = await api.getVideo(videoId);
+        setVideo(v);
+        if (v.analysis_status !== "queued" && v.analysis_status !== "running") {
+          await refreshAnalysis();
+        }
+      } catch {
+        /* tenta de novo no próximo ciclo */
+      }
+    }, 2000);
+    return () => window.clearInterval(id);
+  }, [analysisActive, videoId, refreshAnalysis]);
+
+  const runAnalysis = async () => {
+    try {
+      onVideo(await api.analyze(videoId));
+    } catch (e) {
+      setError(String((e as Error).message));
+    }
+  };
 
   const n = pts.length;
   const fps = video?.meta?.fps_measured || 30;
@@ -266,6 +318,8 @@ export default function Review({ videoId }: { videoId: string }) {
       setGrids(out.grids);
       apply(out);
       setCalDirty(false);
+      gridCache.current.clear();
+      onVideo(out.video);
     } catch (e) {
       setCalMsg(String((e as Error).message));
     } finally {
@@ -282,6 +336,8 @@ export default function Review({ videoId }: { videoId: string }) {
       setGrids(out.grids);
       apply(out);
       setCalDirty(false);
+      gridCache.current.clear();
+      onVideo(out.video);
     } catch (e) {
       setCalMsg(String((e as Error).message));
     }
@@ -306,6 +362,27 @@ export default function Review({ videoId }: { videoId: string }) {
       if (id) await patch({ update: [{ id, image_xy: [x, y] }] });
     })();
   }
+
+  // Grade do quadro atual (câmera em movimento: cada quadro tem a sua)
+  const hasCalibration = results.some((r) => r.accepted);
+  useEffect(() => {
+    if (playing || !showGrid || !hasCalibration || calDirty) return;
+    const cached = gridCache.current.get(frame);
+    if (cached) {
+      setFrameGrid(cached);
+      return;
+    }
+    const h = window.setTimeout(() => {
+      api
+        .grid(videoId, frame)
+        .then((g) => {
+          gridCache.current.set(frame, g.lines);
+          setFrameGrid(g.lines);
+        })
+        .catch(() => undefined);
+    }, 120);
+    return () => window.clearTimeout(h);
+  }, [frame, playing, showGrid, hasCalibration, calDirty, videoId]);
 
   // ---- Teclado ------------------------------------------------------------------------
   const keyRef = useRef<(e: KeyboardEvent) => void>(() => undefined);
@@ -357,7 +434,7 @@ export default function Review({ videoId }: { videoId: string }) {
   const { proxy_width: W, proxy_height: H } = video.meta;
   const here = events.filter((e) => e.frame === frame && e.image_xy);
   const grid = mode === "calibration" ? grids[String(frame)] ?? (nearestResult ? grids[String(nearestResult.frame)] : undefined)
-    : showGrid && nearestResult ? grids[String(nearestResult.frame)] : undefined;
+    : showGrid && nearestResult ? frameGrid ?? grids[String(nearestResult.frame)] : undefined;
   const anchorHere = anchors.find((a) => a.frame === frame);
   const resultHere = results.find((r) => r.frame === frame);
 
@@ -390,13 +467,42 @@ export default function Review({ videoId }: { videoId: string }) {
         </div>
       </div>
 
+      <div className={`analysis-bar ${video.analysis_status}`}>
+        <div>
+          <b>Análise automática:</b>{" "}
+          {{
+            idle: "ainda não rodou",
+            queued: "na fila…",
+            running: "analisando o vídeo…",
+            done: "concluída",
+            failed: "não concluída",
+          }[video.analysis_status]}
+          {!video.calibration_ok && " · calibre a piscina (aba Calibração) para começar"}
+          {video.calibration_ok && !race.lane && " · informe a raia em “editar dados da prova”"}
+          {video.analysis_notes.length > 0 && (
+            <ul>
+              {video.analysis_notes.map((t) => (
+                <li key={t}>{t}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <button
+          className="btn small"
+          disabled={analysisActive || !video.calibration_ok || !race.lane}
+          onClick={runAnalysis}
+        >
+          {analysisActive ? "Analisando…" : video.analysis_status === "idle" ? "Analisar" : "Analisar de novo"}
+        </button>
+      </div>
+
       {editRace && (
         <div className="card">
           <RaceFields
             race={race}
             onChange={async (r) => {
               try {
-                await api.updateRace(videoId, r);
+                onVideo(await api.updateRace(videoId, r));
                 apply(await api.events(videoId));
               } catch (e) {
                 setError(String((e as Error).message));
@@ -447,6 +553,17 @@ export default function Review({ videoId }: { videoId: string }) {
                   </text>
                 </g>
               ))}
+            {mode === "review" && traj && frame < traj.frame.length && (
+              <g className="swimmer" style={{ opacity: 0.4 + 0.6 * traj.confidence[frame] }}>
+                <circle cx={traj.head_img_x[frame]} cy={traj.head_img_y[frame]} r={W / 70} />
+                <line x1={traj.head_img_x[frame] - W / 45} x2={traj.head_img_x[frame] + W / 45}
+                  y1={traj.head_img_y[frame]} y2={traj.head_img_y[frame]} />
+                <text x={traj.head_img_x[frame] + W / 60} y={traj.head_img_y[frame] - W / 60}
+                  className="ev-label swimmer-label">
+                  {traj.head_x[frame].toFixed(1).replace(".", ",")} m
+                </text>
+              </g>
+            )}
           </FrameView>
 
           <div className="transport">
@@ -531,6 +648,11 @@ export default function Review({ videoId }: { videoId: string }) {
               {selected && (
                 <section className="card selected">
                   <h3 style={{ color: EVENT_COLOR[selected.type] }}>{EVENT_LABEL[selected.type]}</h3>
+                  <p className="muted small">
+                    {selected.source === "auto"
+                      ? `Automático · confiança ${Math.round(selected.confidence * 100)}%`
+                      : "Marcado ou corrigido por você"}
+                  </p>
                   <p>
                     Quadro {selected.frame} · {fmtTime(selected.t)}
                     {selected.x_m != null && ` · ${selected.x_m.toFixed(2).replace(".", ",")} m da parede de saída`}

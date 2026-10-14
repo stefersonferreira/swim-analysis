@@ -35,11 +35,11 @@ a ordem de construção e os critérios de pronto estão lá e na tabela abaixo.
 | 2 | Biblioteca de métricas | Catálogo inteiro testado, incluindo o vídeo de referência e o peito | Feito |
 | 3 | Player de revisão e linha do tempo | Quadro mostrado = quadro pedido; marcação manual com atalhos | Feito |
 | 4 | Calibração por cliques (câmera parada) | Erro de reprojeção ≤ 0,15 m em 5 vídeos de 25 m | Feito (falta medir em 5 vídeos reais) |
-| 5 | Movimento da câmera e propagação | Deriva ≤ 0,3 m ao longo de uma piscina | |
-| 6 | Detecção (RT-DETR), rastreamento, seleção | Nadador certo do início ao fim nos vídeos de referência | |
-| 7 | Trajetória | Passagem nos 15 m a ±0,15 s do anotado | |
-| 8 | Áudio da largada e eventos de fase | Metas do automático para reação, breakout e viradas | |
-| 9 | Braçadas no crawl | Exata em 85% das piscinas do treino | |
+| 5 | Movimento da câmera e propagação | Deriva ≤ 0,3 m ao longo de uma piscina | Feito (sintético: mediana 7 cm, máx. 27 cm) |
+| 6 | Detecção (RT-DETR), rastreamento, seleção | Nadador certo do início ao fim nos vídeos de referência | Versão clássica feita (faixa da raia + Viterbi); RT-DETR pendente |
+| 7 | Trajetória | Passagem nos 15 m a ±0,15 s do anotado | Feito no sintético; falta validar em vídeos reais |
+| 8 | Áudio da largada e eventos de fase | Metas do automático para reação, breakout e viradas | Parcial: largada, entrada, breakout, viradas, chegada; pés fora ainda manual |
+| 9 | Braçadas no crawl | Exata em 85% das piscinas do treino | Feito no sintético; falta validar em vídeos reais |
 | 10 | Braçadas no peito | Exata em 85% das piscinas do treino | |
 | 11 | Alertas e recálculo ao corrigir | Corrigir um evento atualiza as métricas em < 1 s | Parcial (recálculo e alertas básicos feitos) |
 | 12 | Vídeo com sobreposição | Prova de referência renderizada com todos os elementos | |
@@ -55,12 +55,21 @@ pipeline/swimcv/ingest/       módulo 1: proxy todo-intra, tabela de PTS, áudio
 pipeline/swimcv/calibration/  calibração por cliques (homografia imagem -> piscina)
 pipeline/swimcv/metrics/      catálogo de métricas (puro) + resolução de posição + unidades
 pipeline/swimcv/storage/      caminhos por vídeo (pasta local; S3 na etapa 2)
+pipeline/swimcv/camera/       movimento da câmera e homografia por quadro (entrega 5)
+pipeline/swimcv/tracking/     rastreamento do nadador na raia (faixa retificada + Viterbi)
+pipeline/swimcv/events/       largada pelo áudio e eventos automáticos
+pipeline/swimcv/analyze.py    orquestra a análise automática (usada pelo worker)
 backend/app/                  FastAPI, banco (SQLAlchemy + Alembic), worker Celery
 frontend/src/                 React + Vite: lista, upload, revisão, calibração
 tests/                        unit, integration (PostgreSQL), e2e (navegador), golden
 ```
 
 ## Armadilhas conhecidas
+
+- Eventos automáticos têm `source = auto`. Ao reanalisar, só os automáticos não tocados são
+  trocados; um automático corrigido vira `manual` e fica; um automático apagado não volta.
+- Toda mudança no rastreamento ou nos eventos automáticos precisa passar em
+  `tests/unit/test_auto_analysis.py` (provas sintéticas com verdade conhecida, marcador `slow`).
 
 - O proxy precisa manter a base de tempo do original (`passthrough_args` em `ingest/run.py`);
   sem isso o encoder arredonda os tempos e a taxa variável some.

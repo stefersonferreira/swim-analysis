@@ -140,3 +140,14 @@ input[type="checkbox"] { padding: 0; width: auto; }
 table.points { width: 100%; border-collapse: collapse; font-size: 13px; }
 table.points th, table.points td { padding: 3px 6px; border-bottom: 1px solid var(--line); text-align: left; }
 table.points tr.bad td { color: var(--bad); }
+
+.analysis-bar { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+  background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--muted);
+  border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-size: 13px; }
+.analysis-bar ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); }
+.analysis-bar.done { border-left-color: var(--ok); }
+.analysis-bar.running, .analysis-bar.queued { border-left-color: var(--accent); }
+.analysis-bar.failed { border-left-color: var(--bad); }
+.swimmer circle { fill: none; stroke: #ff4fd8; stroke-width: 3; vector-effect: non-scaling-stroke; }
+.swimmer line { stroke: #ff4fd8; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.swimmer-label { fill: #ff4fd8; }

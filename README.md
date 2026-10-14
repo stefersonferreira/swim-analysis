@@ -4,9 +4,11 @@ Ferramenta para medir provas de natação a partir de um vídeo de celular: rea�
 breakout, braçadas, tempo de ciclo, velocidade, distância por ciclo, viradas e parciais.
 Estilos da v1: livre (crawl) e peito; piscinas de 25 m e 50 m. Tudo em metros.
 
-**Estado atual (etapa 1, entregas 0 a 4):** você envia o vídeo, calibra a piscina com
-alguns cliques e marca os eventos à mão na tela de revisão; o sistema calcula todas as
-métricas na hora. A detecção automática (nadador, braçadas, fases) vem nas próximas entregas.
+**Estado atual:** você envia o vídeo (com a raia do nadador) e calibra a piscina com alguns
+cliques. A partir daí a análise é automática: largada pelo som, posição do nadador quadro a
+quadro (com câmera parada ou acompanhando), entrada, breakout, braçadas, viradas, chegada e
+passagens a cada 5 m. Você só confere e corrige na tela de revisão; as métricas recalculam na
+hora. Ainda manual: pés fora do bloco (para a reação).
 
 A especificação completa está no documento da spec (link em [`spec/README.md`](spec/README.md)).
 
@@ -60,8 +62,12 @@ Vídeos e resultados ficam em `./data`; o banco, no volume `pgdata`.
 2. **Calibração** (aba): crie uma âncora no quadro atual e clique pontos de posição conhecida —
    onde cada corda encontra a parede (0 m), as marcas de 5 m e 15 m e a parede oposta. Com
    câmera parada, uma âncora com 4 a 8 pontos basta. Aceita com erro médio até 15 cm.
-3. **Revisão** (aba): navegue quadro a quadro e marque os eventos pelo teclado. Logo depois de
-   marcar, clique na cabeça do nadador para dar a posição na piscina.
+3. **Análise automática:** roda sozinha ao salvar a calibração (precisa da raia nos dados da
+   prova) e aparece na barra "Análise automática". O marcador rosa mostra onde o sistema acha
+   que está a cabeça do nadador; eventos automáticos aparecem mais claros na linha do tempo.
+4. **Revisão** (aba): confira os alertas e corrija o que precisar pelo teclado. Para criar um
+   evento, marque no quadro certo e clique na cabeça do nadador para dar a posição. O que você
+   corrige nunca é sobrescrito por uma nova análise.
 
 | Tecla | Ação |
 | --- | --- |

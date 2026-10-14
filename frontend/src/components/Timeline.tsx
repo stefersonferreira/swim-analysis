@@ -149,6 +149,7 @@ export default function Timeline(props: {
                     height={sel ? 18 : 14}
                     rx={2}
                     fill={EVENT_COLOR[e.type]}
+                    fillOpacity={e.source === "auto" ? 0.55 : 1}
                     stroke={sel ? "#fff" : e.image_xy ? "none" : "#0b1220"}
                     strokeWidth={sel ? 2 : 1}
                     strokeDasharray={e.image_xy || sel ? undefined : "2 2"}
@@ -161,6 +162,7 @@ export default function Timeline(props: {
                     <title>
                       {EVENT_LABEL[e.type]} · quadro {e.frame} · {e.t.toFixed(3)} s
                       {e.image_xy ? "" : " · sem posição"}
+                      {e.source === "auto" ? ` · automático (${Math.round(e.confidence * 100)}%)` : ""}
                     </title>
                   </rect>
                 </g>

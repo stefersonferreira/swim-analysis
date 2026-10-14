@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.0 — 2026-10-13
+
+Análise automática (versão clássica, sem modelo de IA para baixar).
+
+- Largada pelo áudio, logo após o envio.
+- Movimento da câmera e calibração propagada para todos os quadros (câmera acompanhando).
+- Rastreamento do nadador na própria raia; trajetória e marcador na tela.
+- Eventos automáticos: entrada, breakout, braçadas, viradas, chegada, passagens a cada 5 m.
+- Reanálise preserva correções manuais; alertas para eventos de baixa confiança.
+- Provas sintéticas com verdade conhecida nos testes e no CI.
+
 ## 0.1.1 — 2026-10-13
 
 - Só metros: removido todo suporte a jardas (piscina de 25 jd, conversões e rótulos "jd").

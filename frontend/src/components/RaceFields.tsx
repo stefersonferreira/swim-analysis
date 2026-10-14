@@ -67,7 +67,7 @@ export default function RaceFields(props: {
         </select>
       </label>
       <label>
-        Raia
+        Raia (necessária para a análise automática)
         <input
           type="number"
           min={1}

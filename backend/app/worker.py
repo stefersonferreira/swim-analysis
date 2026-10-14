@@ -56,9 +56,11 @@ def ingest(video_id: str) -> str:
             raise
         video.meta = meta.model_dump(mode="json")
         video.warnings = warnings
+        db.commit()
+        # largada pelo áudio antes de liberar o vídeo: quem abrir a revisão já a encontra
+        _auto_start(db, video, paths)
         video.status = "ready"
         db.commit()
-        _auto_start(db, video, paths)
         return "ready"
     finally:
         db.close()

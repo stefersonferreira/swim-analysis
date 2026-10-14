@@ -111,6 +111,14 @@ jobs:
           uv run --no-project --with playwright==1.56.0 python -m playwright install --with-deps chromium > /tmp/pw-install.log 2>&1
           BASE_URL=http://localhost:8080 uv run --no-project --with playwright==1.56.0 \
             python tests/e2e/ui_smoke.py teste.mp4 e2e-shots 2>&1 | tee -a /tmp/ci.log
+      - name: Teste de navegador da análise automática (prova sintética)
+        run: |
+          echo "=== e2e automático" | tee -a /tmp/ci.log
+          docker run --rm -v "$PWD:/w" -w /w ghcr.io/stefersonferreira/swim-analysis-worker:ci \
+            python -c "import sys, json; sys.path[:0] = ['/w', '/w/pipeline']; from pathlib import Path; from tests.synthetic import FPS, Truth, anchor_points, render; render(Path('/w/sint.mp4')); json.dump(anchor_points(150 / FPS, False, Truth()), open('/w/sint_points.json', 'w'))" \
+            2>&1 | tee -a /tmp/ci.log
+          BASE_URL=http://localhost:8080 uv run --no-project --with playwright==1.56.0 \
+            python tests/e2e/auto_smoke.py sint.mp4 e2e-shots sint_points.json 2>&1 | tee -a /tmp/ci.log
       - name: Logs em caso de falha (viram anotações do GitHub)
         if: failure()
         run: |

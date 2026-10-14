@@ -66,6 +66,7 @@ export default function VideoList() {
               <th>Estilo</th>
               <th>Distância</th>
               <th>Status</th>
+              <th>Análise</th>
               <th>Enviado</th>
             </tr>
           </thead>
@@ -83,6 +84,10 @@ export default function VideoList() {
                 </td>
                 <td>
                   <span className={`status ${v.status}`}>{STATUS[v.status]}</span>
+                </td>
+                <td className="muted">
+                  {{ idle: "—", queued: "na fila", running: "analisando", done: "automática ✓",
+                     failed: "falhou" }[v.analysis_status]}
                 </td>
                 <td className="muted">
                   {v.created_at ? new Date(v.created_at).toLocaleString("pt-BR") : ""}

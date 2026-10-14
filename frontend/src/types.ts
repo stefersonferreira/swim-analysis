@@ -44,6 +44,10 @@ export interface Video {
   race: RaceInfo;
   meta: VideoMeta | null;
   has_calibration: boolean;
+  calibration_ok: boolean;
+  analysis_status: "idle" | "queued" | "running" | "done" | "failed";
+  analysis_notes: string[];
+  analyzed_at: string | null;
   created_at: string | null;
 }
 
@@ -125,4 +129,12 @@ export interface GridLine {
 export interface CalibrationState {
   calibration: { pool: PoolProfile; anchors: Anchor[]; results: AnchorResult[] };
   grids: Record<string, GridLine[]>;
+}
+
+export interface TrajectoryData {
+  frame: number[];
+  head_x: number[];
+  confidence: number[];
+  head_img_x: number[];
+  head_img_y: number[];
 }
