@@ -299,13 +299,12 @@ def build_timeline(
     bo_m = _metric(report, "start_breakout_m")
     if bo0 is not None:
         uw = _metric(report, "start_underwater_s")
-        callout(
-            bo0.t,
-            "breakout",
-            "Saiu à tona",
-            f"{br(bo_m, 1)} m" if bo_m is not None else "",
-            f"{br(uw)} s submerso" if uw is not None else "",
-        )
+        # sem calibração (sem metros), o número grande é o tempo submerso
+        if bo_m is not None:
+            val, sub_ = f"{br(bo_m, 1)} m", f"{br(uw)} s submerso" if uw is not None else ""
+        else:
+            val, sub_ = (f"{br(uw)} s", "submerso") if uw is not None else ("", "")
+        callout(bo0.t, "breakout", "Saiu à tona", val, sub_)
     s15 = _metric(report, "start_15m_s")
     if s15 is not None and t0 is not None:
         callout(t0 + s15, "15m", "15 m", f"{br(s15)} s", "da largada")
@@ -345,6 +344,9 @@ def build_timeline(
     rows = []
     if reaction is not None:
         rows.append(["Reação", f"{br(reaction)} s"])
+    uw0 = _metric(report, "start_underwater_s")
+    if uw0 is not None:
+        rows.append(["Submerso na saída", f"{br(uw0)} s"])
     if s15 is not None:
         rows.append(["15 m", f"{br(s15)} s"])
     for d in out_lengths:
@@ -521,6 +523,11 @@ def state_at(tl: dict, t: float) -> dict:
         tf is not None
         and t >= tf
         and t >= min(tf + CALLOUT_S * 1.6, (tl["duration_s"] or 1e9) - SUMMARY_TAIL_S)
+    ) or (  # sem chegada no vídeo: resumo no fim, se houve algo medido
+        tf is None
+        and bool(tl.get("summary"))
+        and bool(tl["duration_s"])
+        and t >= tl["duration_s"] - SUMMARY_TAIL_S
     )
     if lanes:
         fins = [lr["finish_t"] for lr in tl["lanes"]]
@@ -532,7 +539,8 @@ def state_at(tl: dict, t: float) -> dict:
         if all_in and t0 is not None and tf is None and t >= max(fins):
             clock = max(fins) - t0
     return {
-        "clock": clock,
+        # sem chegada marcada, o relógio some no resumo (não é tempo de prova)
+        "clock": None if (summary and tf is None and not lanes) else clock,
         "phase": kind,
         "phase_label": ph["label"] if ph else None,
         "length": ln["index"],

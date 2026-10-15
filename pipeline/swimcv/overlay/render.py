@@ -269,6 +269,8 @@ class Painter:
         if force_summary:
             s["show_summary"] = True
             s["callouts"] = []
+            if tl.get("t_finish") is None and not tl.get("lanes"):
+                s["clock"] = None  # sem chegada: o relógio não é tempo de prova
         d = ImageDraw.Draw(img)
 
         # relógio e prova

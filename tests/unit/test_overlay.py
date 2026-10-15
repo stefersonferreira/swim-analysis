@@ -225,3 +225,15 @@ def test_no_start_in_video_still_shows_swim_panel_from_first_stroke():
     assert state_at(tl, 10.0)["phase"] in (None, "ready")
     s = state_at(tl, 12.5)
     assert s["phase"] == "swim" and s["clock"] is None and s["tempo"] is not None
+
+
+def test_without_finish_the_clock_clears_at_the_end_summary():
+    from swimcv.contracts import Event, RaceInfo, Stroke
+
+    race = RaceInfo(stroke=Stroke.FREESTYLE, distance=25, pool_length=25)
+    evs = [Event(type=EventType.START_SIGNAL, frame=6, t=0.2)]
+    evs += [Event(type=EventType.STROKE, frame=round(t * 30), t=t) for t in (3.8, 4.3, 4.9, 5.3)]
+    tl = build_timeline(race, evs, compute_metrics(race, evs), duration_s=14.0)
+    assert state_at(tl, 10.0)["clock"] == pytest.approx(9.8)  # tempo desde a largada, ao vivo
+    end = state_at(tl, 13.9)
+    assert end["show_summary"] and end["clock"] is None

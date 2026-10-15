@@ -157,7 +157,9 @@ export function stateAt(tl: OverlayTimeline, t: number): OverlayState {
   });
   let clockNow = clock;
   let summary =
-    tf != null && t >= tf && t >= Math.min(tf + CALLOUT_S * 1.6, (tl.duration_s || 1e9) - SUMMARY_TAIL_S);
+    (tf != null && t >= tf && t >= Math.min(tf + CALLOUT_S * 1.6, (tl.duration_s || 1e9) - SUMMARY_TAIL_S)) ||
+    // sem chegada no vídeo: resumo no fim, se houve algo medido
+    (tf == null && tl.summary.length > 0 && !!tl.duration_s && t >= tl.duration_s - SUMMARY_TAIL_S);
   if (lanes.length) {
     const fins = (tl.lanes ?? []).map((lr) => lr.finish_t);
     const allIn = fins.every((f) => f != null);
@@ -169,7 +171,8 @@ export function stateAt(tl: OverlayTimeline, t: number): OverlayState {
     if (allIn && t0 != null && tf == null && t >= last) clockNow = last - t0;
   }
   return {
-    clock: clockNow,
+    // sem chegada marcada, o relógio some no resumo (não é tempo de prova)
+    clock: summary && tf == null && lanes.length === 0 ? null : clockNow,
     pulse: done.length > 0 && t - done[done.length - 1][0] < PULSE_S,
     phase: kind,
     phaseLabel: ph?.label ?? null,

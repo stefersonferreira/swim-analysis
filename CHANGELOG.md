@@ -8,6 +8,10 @@ Ajustes da simulação de um pedido real (vídeo gravado com a prova já em anda
   aparece; o MP4 termina com o resumo mesmo sem a chegada.
 - Ritmo sempre em ciclos/min (no crawl, 1 ciclo = 2 braçadas): o rascunho dizia
   "braçadas/min" para o mesmo número. O número do rascunho é o mesmo do vídeo.
+- Sem chegada no vídeo: o resumo aparece no fim também na tela, e o relógio some nele (o tempo
+  desde a largada não é tempo de prova).
+- Saída de dentro da água: o balão "Saiu à tona" mostra o tempo submerso quando não há metros
+  (sem calibração), e o resumo traz "Submerso na saída".
 - Observação própria do treinador aparece neutra (não como correção); sem nota duplicada de
   "sem largada"; "braçadas marcadas".
 
