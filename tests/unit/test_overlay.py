@@ -211,3 +211,17 @@ def test_walls_only_and_partial_strokes_do_not_invent_numbers():
     assert rows["Ritmo"] == "50 ciclos/min"
     assert rows["Velocidade média"] == "0,96 m/s"
     assert tl["notes"] == ["trecho medido"] and tl["strokes_partial"]
+
+
+def test_no_start_in_video_still_shows_swim_panel_from_first_stroke():
+    """Gravação começou com a prova em andamento: sem largada, o painel aparece nas braçadas."""
+    from swimcv.contracts import Event, RaceInfo, Stroke
+
+    race = RaceInfo(stroke=Stroke.FREESTYLE, distance=25, pool_length=25)
+    evs = [Event(type=EventType.STROKE, frame=round(t * 30), t=t) for t in (11.0, 11.6, 12.3, 12.9)]
+    tl = build_timeline(
+        race, evs, compute_metrics(race, evs), duration_s=15.0, strokes_partial=True
+    )
+    assert state_at(tl, 10.0)["phase"] in (None, "ready")
+    s = state_at(tl, 12.5)
+    assert s["phase"] == "swim" and s["clock"] is None and s["tempo"] is not None

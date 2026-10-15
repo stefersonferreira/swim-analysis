@@ -799,7 +799,9 @@ def render_mp4(
     fps = float(round(fps)) if abs(fps - round(fps)) < 0.05 else fps
     duration = float(pts[-1]) + 1.0 / fps
     n_main = int(math.floor(duration * fps))
-    n_end = int(END_HOLD_S * fps) if (tl.get("t_finish") is not None or tl.get("lanes")) else 0
+    # resumo no fim sempre que houver algo medido (mesmo sem a chegada no vídeo)
+    has_end = tl.get("t_finish") is not None or tl.get("lanes") or tl.get("summary")
+    n_end = int(END_HOLD_S * fps) if has_end else 0
     total = n_main + n_end
     out.parent.mkdir(parents=True, exist_ok=True)
     tmp = out.with_suffix(".partial.mp4")

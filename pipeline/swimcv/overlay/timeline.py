@@ -236,6 +236,14 @@ def build_timeline(
     if finish is not None:
         phase("finish", finish.t, 1e9, len(lengths) - 1)
     # fases em ordem e sem sobreposição (a seguinte corta a anterior)
+    # sem largada no vídeo (gravação começou com a prova em andamento): a fase de nado vale
+    # a partir da primeira braçada marcada, para o painel aparecer
+    if start is None and all(p["kind"] == "ready" for p in phases):
+        first = min((e.t for e in evs if e.type == E.STROKE), default=None)
+        if first is not None:
+            phases.append(
+                {"kind": "swim", "label": PHASE_LABEL["swim"], "t0": first, "t1": None, "length": 0}
+            )
     phases = [p for p in phases if p["t0"] is not None]
     phases.sort(key=lambda p: p["t0"])
     for a, b in zip(phases, phases[1:], strict=False):

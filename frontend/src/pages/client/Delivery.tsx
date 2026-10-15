@@ -133,7 +133,7 @@ export default function Delivery({ token }: { token: string }) {
                       <b>{c.title}</b>
                       <ul>
                         {c.lines.map((l) => (
-                          <li key={l.text} className={l.good ? "good" : "fix"}>
+                          <li key={l.text} className={l.good == null ? "note" : l.good ? "good" : "fix"}>
                             {l.text}
                           </li>
                         ))}

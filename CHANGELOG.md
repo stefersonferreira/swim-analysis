@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.1 — 2026-10-15
+
+Ajustes da simulação de um pedido real (vídeo gravado com a prova já em andamento).
+
+- Sem largada no vídeo: a fase "Nadando" começa na primeira braçada marcada e o painel ao vivo
+  aparece; o MP4 termina com o resumo mesmo sem a chegada.
+- Ritmo sempre em ciclos/min (no crawl, 1 ciclo = 2 braçadas): o rascunho dizia
+  "braçadas/min" para o mesmo número. O número do rascunho é o mesmo do vídeo.
+- Observação própria do treinador aparece neutra (não como correção); sem nota duplicada de
+  "sem largada"; "braçadas marcadas".
+
 ## 0.6.0 — 2026-10-15
 
 Técnica, quadro a quadro (o que a revisão paga escreve à mão, agora com poucos cliques).

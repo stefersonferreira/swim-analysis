@@ -31,6 +31,10 @@ MOMENT_LABEL = {
 }
 
 
+def _marked(word: str) -> str:
+    return "marcadas" if word.lower().startswith("braçada") else "marcados"
+
+
 def _s(v: float | None, unit: str = " s") -> str:
     return DASH if v is None else f"{br(v)}{unit}"
 
@@ -65,7 +69,7 @@ def _lane_insights(lanes: list[dict], stroke_word: str) -> list[str]:
                 )
     rated = [lr for lr in lanes if lr["rate"]]
     if len(rated) >= 2:
-        unit = f"{stroke_word.lower()}/min"
+        unit = "ciclos/min"  # um ciclo = 2 braçadas no crawl
         parts = [
             f"raia {lr['lane']} com {lr['rate']:.0f} {unit}"
             for lr in sorted(rated, key=lambda lr: lr["lane"])
@@ -99,8 +103,8 @@ def technique_cards(tl: dict, notes: list[dict]) -> list[dict]:
         lines = [
             {"text": known[k][1].text, "good": known[k][1].good} for k in n["items"] if k in known
         ]
-        if n.get("text"):
-            lines.append({"text": n["text"], "good": False})
+        if n.get("text"):  # observação própria: neutra (nem ponto forte, nem correção)
+            lines.append({"text": n["text"], "good": None})
         if not lines:
             continue
         mark = n.get("mark")
@@ -225,14 +229,16 @@ def build_report(
     for who, ts in strokes.items():
         ts.sort()
         moments.setdefault(who, []).append(
-            (f"{word} marcados ({len(ts)})", f"de {br(ts[0])} a {br(ts[-1])} s")
+            (f"{word} {_marked(word)} ({len(ts)})", f"de {br(ts[0])} a {br(ts[-1])} s")
         )
 
     notes = []
     if partial:
-        notes.append(f"{word} marcados só num trecho do vídeo: o ritmo vale, a contagem total não.")
+        notes.append(
+            f"{word} {_marked(word)} só num trecho do vídeo: o ritmo vale, a contagem total não."
+        )
     notes += list(tl.get("notes") or [])
-    if t0 is None:
+    if t0 is None and not any("largada" in n.lower() for n in notes):
         notes.append("Sem largada marcada: os tempos não podem ser medidos.")
 
     return {
@@ -279,6 +285,10 @@ figcaption{padding:10px 12px}figcaption ul{margin:6px 0 0;padding-left:18px}li.g
 """
 
 
+def _li(good: bool | None) -> str:
+    return "note" if good is None else ("good" if good else "fix")
+
+
 def render_html(rep: dict, frame_url=None) -> str:
     e = html.escape
 
@@ -318,8 +328,7 @@ def render_html(rep: dict, frame_url=None) -> str:
                 else ""
             )
             lis = "".join(
-                f"<li class='{'good' if ln['good'] else 'fix'}'>{e(ln['text'])}</li>"
-                for ln in c["lines"]
+                f"<li class='{_li(ln['good'])}'>{e(ln['text'])}</li>" for ln in c["lines"]
             )
             parts.append(
                 f"<figure class='tcard'><div class='shot' style='aspect-ratio:{c['aspect']:.4f}'>"

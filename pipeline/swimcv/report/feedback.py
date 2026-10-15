@@ -21,14 +21,17 @@ def _cycles(strokes: list[list]) -> list[float]:
     return [tp for _, tp in strokes if tp]
 
 
-def _pace_points(name: str, cycles: list[float], word: str, out: dict) -> None:
+def _pace_points(
+    name: str, cycles: list[float], word: str, out: dict, rate: float | None = None
+) -> None:
+    """rate: o ritmo que o vídeo e o relatório mostram (para os números baterem)."""
     if len(cycles) < 3:
         return
     avg = mean(cycles)
     cv = pstdev(cycles) / avg if avg else 0.0
     if cv <= STEADY_CV:
         out["strengths"].append(
-            f"{name}: ritmo constante, {60 / avg:.0f} {word}/min sem perder o padrão."
+            f"{name}: ritmo constante, {rate or 60 / avg:.0f} {word}/min sem perder o padrão."
         )
     half = len(cycles) // 2
     first, last = mean(cycles[:half]), mean(cycles[half:])
@@ -67,7 +70,8 @@ def draft_feedback(tl: dict) -> dict:
     """{summary, strengths[], improve[], drills[]} a partir da linha do tempo."""
     out: dict = {"summary": "", "strengths": [], "improve": [], "drills": []}
     breast = tl.get("stroke_word") == "Ciclos"
-    word = "ciclos" if breast else "braçadas"
+    # ritmo é sempre por ciclo (no crawl, um ciclo = 2 braçadas)
+    word = "ciclos"
     lanes = tl.get("lanes") or []
 
     if lanes:
@@ -87,7 +91,7 @@ def draft_feedback(tl: dict) -> dict:
         for lr in sorted(lanes, key=lambda lr: lr["lane"]):
             name = f"Raia {lr['lane']}"
             _start_points(name, lr["start_delay"], lr["start_delay_kind"], out)
-            _pace_points(name, _cycles(lr["strokes"]), word, out)
+            _pace_points(name, _cycles(lr["strokes"]), word, out, lr["rate"])
         rated = [lr for lr in lanes if lr["rate"]]
         if len(rated) >= 2:
             lo, hi = min(rated, key=lambda lr: lr["rate"]), max(rated, key=lambda lr: lr["rate"])
@@ -120,7 +124,9 @@ def draft_feedback(tl: dict) -> dict:
                 reaction = float(v.split()[0].replace(",", "."))
         _start_points(name, reaction, "feet_off", out)
         cycles = [tp for ln in tl.get("lengths", []) for _, tp in ln["strokes"] if tp]
-        _pace_points(name, cycles, word, out)
+        tempo_row = rows.get("Tempo de ciclo")
+        rate = 60 / float(tempo_row.split()[0].replace(",", ".")) if tempo_row else None
+        _pace_points(name, cycles, word, out, rate)
 
     if not (out["strengths"] or out["improve"]):
         out["improve"].append(

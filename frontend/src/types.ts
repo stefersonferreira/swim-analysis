@@ -102,7 +102,7 @@ export interface TechCard {
   frame: number;
   t: number;
   title: string;
-  lines: { text: string; good: boolean }[];
+  lines: { text: string; good: boolean | null }[];
   mark: [number, number] | null;
   zoom: [number, number] | null;
   aspect: number;

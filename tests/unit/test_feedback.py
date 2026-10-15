@@ -32,3 +32,10 @@ def test_clean_feedback_drops_empty():
     assert clean_feedback({"summary": " ", "strengths": ["", " "]}) is None
     out = clean_feedback({"summary": " ok ", "drills": [" a ", ""]})
     assert out == {"summary": "ok", "strengths": [], "improve": [], "drills": ["a"]}
+
+
+def test_free_rate_is_in_cycles_per_minute():
+    race, evs = reference_free_50m()
+    fb = draft_feedback(build_timeline(race, evs, compute_metrics(race, evs)))
+    text = " ".join(fb["strengths"] + fb["improve"] + [fb["summary"]])
+    assert "braçadas/min" not in text
