@@ -62,6 +62,7 @@ pipeline/swimcv/events/       largada pelo áudio e eventos automáticos
 pipeline/swimcv/analyze.py    orquestra a análise automática (usada pelo worker)
 pipeline/swimcv/overlay/      linha do tempo da sobreposição (state_at) e MP4 (render.py)
 pipeline/swimcv/report/       relatório (HTML imprimível) e rascunho da devolutiva (feedback.py)
+                              technique.py: pontos técnicos por fase; ai.py: sugestão por IA
 backend/app/api/public.py     rotas públicas do cliente (envio, link de entrega); auth.py: senha
 frontend/src/pages/client/    páginas do cliente (/enviar, /r/{token})
 frontend/src/overlay/         sobreposição ao vivo; state.ts espelha state_at (teste de paridade)

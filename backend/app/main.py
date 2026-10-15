@@ -4,7 +4,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api import auth, public, review, system, videos
+from app.api import auth, public, review, system, technique, videos
 from app.config import get_settings
 
 
@@ -16,6 +16,7 @@ def create_app() -> FastAPI:
     app.include_router(system.router)
     app.include_router(videos.router)
     app.include_router(review.router)
+    app.include_router(technique.router)
 
     static: Path = get_settings().static_dir
     if (static / "index.html").exists():

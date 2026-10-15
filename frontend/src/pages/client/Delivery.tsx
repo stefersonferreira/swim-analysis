@@ -119,6 +119,32 @@ export default function Delivery({ token }: { token: string }) {
             </section>
           )}
 
+          {(o.technique ?? []).length > 0 && (
+            <section className="client-card">
+              <h2>Técnica, quadro a quadro</h2>
+              <div className="tech-list">
+                {o.technique!.map((c) => (
+                  <figure key={c.frame} className="ctech">
+                    <div className="cshot" style={{ aspectRatio: String(c.aspect), width: `min(100%, ${Math.round(420 * c.aspect)}px)` }}>
+                      <img src={c.image} alt={c.title} loading="lazy" />
+                      {c.mark && <span className="cring" style={{ left: `${c.mark[0]}%`, top: `${c.mark[1]}%` }} />}
+                    </div>
+                    <figcaption>
+                      <b>{c.title}</b>
+                      <ul>
+                        {c.lines.map((l) => (
+                          <li key={l.text} className={l.good ? "good" : "fix"}>
+                            {l.text}
+                          </li>
+                        ))}
+                      </ul>
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+            </section>
+          )}
+
           {o.table && (
             <section className="client-card">
               <h2>Números</h2>

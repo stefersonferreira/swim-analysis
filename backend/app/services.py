@@ -223,17 +223,37 @@ def save_calibration(db: Session, video: Video, cal: c.Calibration) -> c.Calibra
     return solved
 
 
-def report_html(db: Session, video: Video) -> str:
+def report_html(db: Session, video: Video, frame_url=None) -> str:
     """Relatório imprimível: mesmos números do vídeo (parte da mesma linha do tempo)."""
     from swimcv.report import build_report, render_html
 
     tl = overlay_timeline(db, video)
     events = [to_contract(e) for e in live_events(db, video.id)]
-    return render_html(build_report(tl, events, feedback=video.feedback))
+    return render_html(
+        build_report(tl, events, feedback=video.feedback, tech_notes=video.tech_notes or []),
+        frame_url=frame_url
+        or (
+            lambda n, z=None: (
+                f"/api/videos/{video.id}/frames/{n}.jpg"
+                + (f"?mx={z[0]:.0f}&my={z[1]:.0f}" if z else "")
+            )
+        ),
+    )
 
 
 def feedback_draft(db: Session, video: Video) -> dict:
     """Rascunho da devolutiva a partir dos números medidos (o treinador revisa)."""
     from swimcv.report import draft_feedback
+    from swimcv.report.technique import notes_feedback
 
-    return draft_feedback(overlay_timeline(db, video))
+    tl = overlay_timeline(db, video)
+    fb = draft_feedback(tl)
+    tech = notes_feedback(
+        race_of(video).stroke, video.tech_notes or [], bool(tl.get("lanes")), fb["improve"]
+    )
+    for k, extra in tech.items():
+        fb[k] = list(dict.fromkeys(fb[k] + extra))
+    # sem observações técnicas, o aviso "poucos momentos" continua; com elas, sai
+    if tech["strengths"] or tech["improve"]:
+        fb["improve"] = [x for x in fb["improve"] if not x.startswith("Poucos momentos")]
+    return fb

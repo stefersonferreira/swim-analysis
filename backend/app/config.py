@@ -1,6 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,6 +24,11 @@ class Settings(BaseSettings):
     admin_password: str = ""
     # endereço público (ex.: https://analise.fluxiia.com) para montar os links de entrega
     public_url: str = ""
+    # sugestões técnicas por IA com visão (opcional)
+    anthropic_api_key: str = Field(
+        "", validation_alias=AliasChoices("SWIM_ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY")
+    )
+    ai_model: str = "claude-sonnet-5-5"
 
 
 @lru_cache

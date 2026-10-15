@@ -83,6 +83,55 @@ def _lane_insights(lanes: list[dict], stroke_word: str) -> list[str]:
     return out
 
 
+def technique_cards(tl: dict, notes: list[dict]) -> list[dict]:
+    """Observações técnicas confirmadas, prontas para mostrar (quadro + frases)."""
+    from swimcv.report.technique import items_by_key, phases_for, zoom_box
+
+    stroke = "breaststroke" if tl.get("stroke_word") == "Ciclos" else "freestyle"
+    known = items_by_key(stroke)
+    labels = {p.key: p.label for p in phases_for(stroke)}
+    multi = bool(tl.get("lanes"))
+    W, H = tl.get("width") or 1, tl.get("height") or 1
+    cards = []
+    for n in notes:
+        if not n.get("confirmed"):
+            continue
+        lines = [
+            {"text": known[k][1].text, "good": known[k][1].good} for k in n["items"] if k in known
+        ]
+        if n.get("text"):
+            lines.append({"text": n["text"], "good": False})
+        if not lines:
+            continue
+        mark = n.get("mark")
+        zoom = zoom_box(W, H, *mark) if mark else None
+        cards.append(
+            {
+                "frame": n["frame"],
+                "t": n["t"],
+                "title": " · ".join(
+                    x
+                    for x in (
+                        f"Raia {n['lane']}" if multi and n.get("lane") else "",
+                        labels.get(n.get("phase") or "", "Quadro"),
+                        f"{br(n['t'])} s",
+                    )
+                    if x
+                ),
+                "lines": lines,
+                # com ponto marcado, a imagem é o recorte em volta dele (atleta maior)
+                "zoom": list(mark) if mark else None,
+                "mark": (
+                    [100 * (mark[0] - zoom[0]) / zoom[2], 100 * (mark[1] - zoom[1]) / zoom[3]]
+                    if zoom
+                    else None
+                ),
+                "aspect": zoom[2] / zoom[3] if zoom else W / H,
+            }
+        )
+    return cards
+
+
 def clean_feedback(fb: dict | None) -> dict | None:
     """Devolutiva sem campos vazios; None se não sobrou nada."""
     if not fb:
@@ -109,6 +158,7 @@ def build_report(
     today: date | None = None,
     feedback: dict | None = None,
     coach: str | None = None,
+    tech_notes: list[dict] | None = None,
 ) -> dict:
     """Dados do relatório a partir da linha do tempo e dos eventos marcados."""
     lanes = tl.get("lanes") or []
@@ -200,6 +250,7 @@ def build_report(
         ],
         "notes": notes,
         "feedback": clean_feedback(feedback),
+        "technique": technique_cards(tl, tech_notes or []),
         "coach": coach,
     }
 
@@ -214,7 +265,12 @@ h1{font:600 30px/1.2 Fredoka,Nunito,sans-serif;margin:6px 0 4px}h2{font:600 20px
 table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
 th{color:var(--mint);font-weight:800;font-size:13px;text-align:right;padding:8px 10px;border-bottom:1px solid var(--line)}
 td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--line)}th:first-child,td:first-child{text-align:left}
-.fbh{font-size:15px;margin:14px 0 4px}ul{padding-left:20px}li{margin:6px 0}.muted{color:var(--muted)}
+.fbh{font-size:15px;margin:14px 0 4px}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
+.tcard{margin:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;break-inside:avoid}
+.shot{position:relative;background:#000;max-height:380px;margin:0 auto}.shot img{width:100%;height:100%;object-fit:contain;display:block}
+.ring{position:absolute;width:16%;aspect-ratio:1;border:3px solid #fbbf24;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 2px rgba(0,0,0,.4)}
+figcaption{padding:10px 12px}figcaption ul{margin:6px 0 0;padding-left:18px}li.good::marker{color:var(--mint)}li.fix::marker{color:#fbbf24}ul{padding-left:20px}li{margin:6px 0}.muted{color:var(--muted)}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
 .box{border:1px solid var(--line);border-radius:14px;padding:12px 14px}.box h3{margin:0 0 6px;font-size:15px}
 .box td{padding:4px 0;border:0}.print{position:fixed;top:16px;right:16px;background:var(--mint);color:var(--navy);border:0;border-radius:10px;padding:8px 14px;font-weight:800;cursor:pointer}
@@ -223,7 +279,7 @@ td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--line)}th:firs
 """
 
 
-def render_html(rep: dict) -> str:
+def render_html(rep: dict, frame_url=None) -> str:
     e = html.escape
 
     def table(t: dict) -> str:
@@ -252,6 +308,25 @@ def render_html(rep: dict) -> str:
                 parts.append(f"<h3 class='fbh'>{FEEDBACK_TITLES[k]}</h3><ul>")
                 parts += [f"<li>{e(x)}</li>" for x in fb[k]]
                 parts.append("</ul>")
+    cards = rep.get("technique") or []
+    if cards and frame_url:
+        parts.append("<h2>Técnica, quadro a quadro</h2><div class='tgrid'>")
+        for c in cards:
+            ring = (
+                f"<span class='ring' style='left:{c['mark'][0]:.1f}%;top:{c['mark'][1]:.1f}%'></span>"
+                if c["mark"]
+                else ""
+            )
+            lis = "".join(
+                f"<li class='{'good' if ln['good'] else 'fix'}'>{e(ln['text'])}</li>"
+                for ln in c["lines"]
+            )
+            parts.append(
+                f"<figure class='tcard'><div class='shot' style='aspect-ratio:{c['aspect']:.4f}'>"
+                f"<img src='{e(frame_url(c['frame'], c['zoom']))}' alt='{e(c['title'])}' loading='lazy'>{ring}"
+                f"</div><figcaption><b>{e(c['title'])}</b><ul>{lis}</ul></figcaption></figure>"
+            )
+        parts.append("</div>")
     parts.append("<h2>Resultados</h2>" + table(rep["table"]))
     if rep["insights"]:
         parts.append("<h2>Pontos para o técnico</h2><ul>")

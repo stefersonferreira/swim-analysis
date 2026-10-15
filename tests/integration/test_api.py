@@ -249,3 +249,52 @@ def test_coach_password(client, monkeypatch):
     client.post("/api/auth/logout")
     client.cookies.clear()
     assert client.get("/api/videos").status_code == 401
+
+
+def test_technique_notes_flow(client, video, monkeypatch):
+    vid = video["id"]
+    st = client.get(f"/api/videos/{vid}/technique").json()
+    assert st["catalog"][0]["key"] == "start" and st["ai_enabled"] is False
+    # outro teste pode ter trocado o estilo: usa os pontos do catálogo atual
+    ph = {p["key"]: p for p in st["catalog"]}
+    fix = next(i for i in ph["breath"]["items"] if not i["good"])
+    other = next(i for i in ph["pull"]["items"] if not i["good"])
+    notes = [
+        {"id": "a", "frame": 30, "t": 1.0, "phase": "breath", "items": [fix["key"]],
+         "mark": [100, 50]},
+        {"id": "b", "frame": 40, "t": 1.3, "phase": "pull", "items": [other["key"]],
+         "confirmed": False},
+    ]  # fmt: skip
+    r = client.put(f"/api/videos/{vid}/technique", json=notes)
+    assert r.status_code == 200 and len(r.json()["tech_notes"]) == 2
+    # só o confirmado entra no rascunho e no relatório
+    fb = client.post(f"/api/videos/{vid}/feedback/draft").json()
+    assert fix["text"] in fb["improve"], fb
+    assert other["text"] not in fb["improve"]
+    page = client.get(f"/api/videos/{vid}/report.html").text
+    assert f"/api/videos/{vid}/frames/30.jpg" in page and "frames/40.jpg" not in page
+    # IA sem chave: recusa clara; com chave, usa a resposta (rede simulada)
+    ask = {"frame": 30, "phase": "breath", "lane": None, "mark": [100, 50]}
+    r = client.post(f"/api/videos/{vid}/technique/ai", json=ask)
+    assert r.status_code == 409 and "ANTHROPIC_API_KEY" in r.json()["detail"]
+    from app.config import get_settings
+    from swimcv.report import ai
+
+    monkeypatch.setattr(get_settings(), "anthropic_api_key", "teste")
+    sent = {}
+
+    def fake_post(url, headers, body):
+        sent["img"] = body["messages"][0]["content"][0]["source"]["data"]
+        return {
+            "content": [
+                {"type": "text", "text": json.dumps({"items": [fix["key"]], "visible": True})}
+            ]
+        }
+
+    monkeypatch.setattr(ai, "_post", fake_post)
+    monkeypatch.setattr(
+        ai.suggest, "__kwdefaults__", {**ai.suggest.__kwdefaults__, "post": fake_post}
+    )
+    r = client.post(f"/api/videos/{vid}/technique/ai", json=ask)
+    assert r.status_code == 200, r.text
+    assert r.json()["items"] == [fix["key"]] and sent["img"]

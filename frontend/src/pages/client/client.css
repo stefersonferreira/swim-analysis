@@ -112,3 +112,14 @@
 .notes { padding-left: 18px; margin: 10px 0 0; }
 .client a.client-btn { color: var(--navy); }
 .client a.client-btn.ghost { color: var(--mint); }
+.tech-list { display: grid; gap: 14px; }
+.ctech { margin: 0; display: grid; grid-template-columns: minmax(110px, 38%) 1fr; gap: 12px; align-items: start; }
+.cshot { position: relative; background: #000; border-radius: 10px; overflow: hidden; max-height: 320px; }
+.cshot img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.cring { position: absolute; width: 22%; aspect-ratio: 1; border: 3px solid #fbbf24; border-radius: 50%; transform: translate(-50%, -50%); }
+.ctech figcaption b { display: block; font-size: 14px; margin-bottom: 4px; }
+.ctech ul { margin: 0; padding-left: 18px; font-size: 15px; display: grid; gap: 4px; }
+.ctech li.good::marker { color: var(--mint); }
+.ctech li.fix::marker { color: #fbbf24; }
+.ctech { grid-template-columns: 1fr; gap: 8px; }
+.cshot { margin: 0 auto; max-height: none; }

@@ -122,6 +122,15 @@ treinador em até 72 h), com a sobreposição Fluxi Swim e o relatório:
    salva. "Entregar ao cliente" libera no link o vídeo, a devolutiva, os números e o relatório
    (PDF), e mostra os botões "Enviar no WhatsApp" e "Copiar link".
 
+**Técnica, quadro a quadro** (abaixo do vídeo na revisão): "Sugerir quadros a partir das
+marcações" cria um quadro por fase (saída, entrada, respiração, braçada, pernada, chegada…) em
+cada raia. Em cada quadro, toque nos pontos que você vê (ex.: "Cabeça alta", "Puxada larga"):
+cada um já traz a frase para o atleta e um exercício, que entram no rascunho da devolutiva.
+"Circular no quadro" e um toque no vídeo marcam o ponto: o cliente vê o recorte ampliado com o
+círculo, no link e no relatório. "Usar quadro atual" troca por um quadro melhor (atleta perto
+da câmera). Com `ANTHROPIC_API_KEY` no `.env`, o botão "IA" pré-marca os pontos olhando o
+quadro; fica em amarelo até você confirmar, e só o confirmado chega ao cliente.
+
 **Antes de abrir para a internet**, defina `SWIM_ADMIN_PASSWORD` no `.env`: a área do
 treinador passa a pedir senha; `/enviar` e os links `/r/...` continuam públicos. Para expor o
 notebook sem abrir portas no roteador, use um túnel (por exemplo Cloudflare Tunnel) apontando

@@ -154,6 +154,14 @@ def main(video: str, out: str = "e2e-shots") -> None:
                 break
             page.wait_for_timeout(2000)
         page.goto(f"{BASE}/videos/{cv['id']}")
+        # Técnica quadro a quadro: o pedido do cliente ainda não tem marcações; adiciona o
+        # quadro atual, escolhe a fase e marca um ponto
+        page.click("[data-testid=tech-add]")
+        card = page.locator("[data-testid=tech-card]").first
+        card.locator("select").select_option("breath")
+        card.locator(".titem").nth(1).click()
+        expect(card.locator(".titem.on")).to_have_count(1)
+        page.wait_for_timeout(900)  # salvamento automático
         page.click("[data-testid=draft]")
         expect(page.locator(".delivery textarea").nth(2)).not_to_have_value("")  # o que melhorar
         page.click("[data-testid=save-feedback]")

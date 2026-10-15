@@ -71,6 +71,8 @@ class Video(Base):
     share_token: Mapped[str] = mapped_column(String(40), unique=True, index=True, default=_token)
     # devolutiva do treinador: {summary, strengths[], improve[], drills[]}
     feedback: Mapped[dict | None] = mapped_column(JSON)
+    # observações técnicas por quadro-chave (swimcv.report.technique.clean_notes)
+    tech_notes: Mapped[list | None] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, onupdate=_now

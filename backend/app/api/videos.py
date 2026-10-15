@@ -84,6 +84,7 @@ def order_dict(v: Video) -> dict:
         "paid": bool(v.paid),
         "share_path": f"/r/{v.share_token}",
         "feedback": v.feedback,
+        "tech_notes": v.tech_notes or [],
     }
 
 
@@ -360,15 +361,38 @@ def frames(video_id: str, db: Session = Depends(get_db)) -> dict:
 
 
 @router.get("/{video_id}/frames/{n}.jpg")
-def frame_jpeg(video_id: str, n: int, db: Session = Depends(get_db)) -> Response:
+def frame_jpeg(
+    video_id: str,
+    n: int,
+    mx: float | None = None,
+    my: float | None = None,
+    db: Session = Depends(get_db),
+) -> Response:
+    """Quadro exato; com mx/my, o recorte ampliado em volta desse ponto."""
     require_ready(get_video(video_id, db))
-    p = paths_for(video_id)
-    reader = readers.get(video_id, p.proxy, p.frames)
     try:
-        data = reader.jpeg(n)
+        data = frame_bytes(video_id, n, mx, my)
     except IndexError as exc:
         raise HTTPException(404, str(exc)) from exc
     return Response(data, media_type="image/jpeg", headers=IMMUTABLE)
+
+
+def frame_bytes(video_id: str, n: int, mx: float | None = None, my: float | None = None) -> bytes:
+    p = paths_for(video_id)
+    data = readers.get(video_id, p.proxy, p.frames).jpeg(n)
+    if mx is None or my is None:
+        return data
+    import io
+
+    from PIL import Image
+
+    from swimcv.report.technique import zoom_box
+
+    im = Image.open(io.BytesIO(data))
+    x0, y0, w, h = zoom_box(im.width, im.height, mx, my)
+    out = io.BytesIO()
+    im.crop((x0, y0, x0 + w, y0 + h)).save(out, "JPEG", quality=88)
+    return out.getvalue()
 
 
 @router.get("/{video_id}/waveform.json")

@@ -10,11 +10,11 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.videos import ALLOWED, export_path, slug, store_upload
+from app.api.videos import ALLOWED, export_path, frame_bytes, slug, store_upload
 from app.config import get_settings
 from app.db import Video, get_db
 from app.services import overlay_timeline, report_html
@@ -94,13 +94,18 @@ def order_status(token: str, db: Session = Depends(get_db)) -> dict:
         "error": v.error if v.status in ("rejected", "failed") else None,
     }
     if delivered:
-        rep = build_report(overlay_timeline(db, v), [], feedback=v.feedback)
+        rep = build_report(
+            overlay_timeline(db, v), [], feedback=v.feedback, tech_notes=v.tech_notes or []
+        )
         out |= {
             "feedback": rep["feedback"],
             "lead": rep["lead"],
             "table": rep["table"],
             "insights": rep["insights"],
             "notes": rep["notes"],
+            "technique": [
+                c | {"image": _frame_url(token, c["frame"], c["zoom"])} for c in rep["technique"]
+            ],
             "has_video": v.export_status == "done" and _export(v).exists(),
             "video_url": f"/api/public/r/{token}/video.mp4",
             "report_url": f"/api/public/r/{token}/report.html",
@@ -130,4 +135,25 @@ def order_video(token: str, db: Session = Depends(get_db)) -> FileResponse:
 
 @router.get("/r/{token}/report.html", response_class=HTMLResponse)
 def order_report(token: str, db: Session = Depends(get_db)) -> HTMLResponse:
-    return HTMLResponse(report_html(db, _delivered(token, db)))
+    v = _delivered(token, db)
+    return HTMLResponse(report_html(db, v, frame_url=lambda n, z=None: _frame_url(token, n, z)))
+
+
+@router.get("/r/{token}/frames/{n}.jpg")
+def order_frame(
+    token: str,
+    n: int,
+    mx: float | None = None,
+    my: float | None = None,
+    db: Session = Depends(get_db),
+) -> Response:
+    """Só os quadros das observações técnicas confirmadas de um pedido entregue."""
+    v = _delivered(token, db)
+    if n not in {x["frame"] for x in v.tech_notes or [] if x.get("confirmed")}:
+        raise HTTPException(404, "quadro não disponível")
+    return Response(frame_bytes(v.id, n, mx, my), media_type="image/jpeg")
+
+
+def _frame_url(token: str, n: int, zoom: list | None) -> str:
+    q = f"?mx={zoom[0]:.0f}&my={zoom[1]:.0f}" if zoom else ""
+    return f"/api/public/r/{token}/frames/{n}.jpg{q}"

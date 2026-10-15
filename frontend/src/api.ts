@@ -9,6 +9,8 @@ import type {
   PublicOrder,
   RaceInfo,
   ReviewState,
+  TechNote,
+  TechState,
   TrajectoryData,
   Video,
 } from "./types";
@@ -51,6 +53,14 @@ export const api = {
     req<Video>(`/api/videos/${id}/feedback`, { method: "PUT", body: JSON.stringify(fb) }),
   draftFeedback: (id: string) => req<Feedback>(`/api/videos/${id}/feedback/draft`, { method: "POST" }),
   deliver: (id: string) => req<Video>(`/api/videos/${id}/deliver`, { method: "POST" }),
+  technique: (id: string) => req<TechState>(`/api/videos/${id}/technique`),
+  saveTechnique: (id: string, notes: TechNote[]) =>
+    req<Video & { tech_notes: TechNote[] }>(`/api/videos/${id}/technique`, { method: "PUT", body: JSON.stringify(notes) }),
+  techAI: (id: string, body: { frame: number; phase: string; lane: number | null; mark: [number, number] | null }) =>
+    req<{ items: string[]; text: string; visible: boolean; confidence: number }>(`/api/videos/${id}/technique/ai`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   publicOrder: (token: string) => req<PublicOrder>(`/api/public/r/${token}`),
   listVideos: () => req<Video[]>("/api/videos"),
   getVideo: (id: string) => req<Video>(`/api/videos/${id}`),

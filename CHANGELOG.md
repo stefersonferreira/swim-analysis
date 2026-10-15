@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.6.0 — 2026-10-15
+
+Técnica, quadro a quadro (o que a revisão paga escreve à mão, agora com poucos cliques).
+
+- Lista de pontos técnicos por fase e estilo (`swimcv.report.technique`): crawl e peito, cada
+  ponto com a frase para o atleta e um exercício; pontos fortes em verde.
+- Quadros-chave sugeridos a partir das marcações (por raia); "Usar quadro atual" e "Circular no
+  quadro" (recorte ampliado em volta do círculo para o cliente: `frames/{n}.jpg?mx=&my=`).
+- Sugestão por IA com visão (`swimcv.report.ai`, opcional, `ANTHROPIC_API_KEY`): escolhe só
+  pontos da lista, diz quando não dá para ver; fica pendente até o treinador confirmar.
+- Os pontos confirmados entram no rascunho da devolutiva (sem repetir o que os números já
+  dizem), no relatório e no link do cliente, com o quadro. Migração 0007.
+
 ## 0.5.0 — 2026-10-14
 
 Revisão paga para clientes (no formato do Swimming Everywhere: vídeo curto, análise e

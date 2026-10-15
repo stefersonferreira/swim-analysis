@@ -67,6 +67,48 @@ export interface Feedback {
   drills: string[];
 }
 
+export interface TechItem {
+  key: string;
+  label: string;
+  text: string;
+  drill: string;
+  good: boolean;
+}
+export interface TechPhase {
+  key: string;
+  label: string;
+  hint: string;
+  items: TechItem[];
+}
+export interface TechNote {
+  id: string;
+  frame: number;
+  t: number;
+  lane: number | null;
+  phase: string | null;
+  items: string[];
+  text: string;
+  mark: [number, number] | null;
+  source: "ai" | "coach";
+  confirmed: boolean;
+}
+export interface TechState {
+  catalog: TechPhase[];
+  suggestions: { lane: number | null; phase: string; frame: number; t: number; dt?: number }[];
+  notes: TechNote[];
+  ai_enabled: boolean;
+}
+export interface TechCard {
+  frame: number;
+  t: number;
+  title: string;
+  lines: { text: string; good: boolean }[];
+  mark: [number, number] | null;
+  zoom: [number, number] | null;
+  aspect: number;
+  image?: string;
+}
+
 export type OrderStatus = "new" | "reviewing" | "delivered";
 
 export interface Order {
@@ -100,6 +142,7 @@ export interface PublicOrder {
   table?: { head: string[]; rows: string[][] };
   insights?: string[];
   notes?: string[];
+  technique?: TechCard[];
   has_video?: boolean;
   video_url?: string;
   report_url?: string;

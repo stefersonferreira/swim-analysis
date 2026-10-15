@@ -4,6 +4,7 @@ import CalibrationPanel, { nextPick, type Pick } from "../components/Calibration
 import FrameView from "../components/FrameView";
 import DeliveryPanel from "../components/DeliveryPanel";
 import MarkingPanel from "../components/MarkingPanel";
+import TechniquePanel from "../components/TechniquePanel";
 import MetricsPanel from "../components/MetricsPanel";
 import RaceFields from "../components/RaceFields";
 import Timeline, { nearestFrame } from "../components/Timeline";
@@ -439,7 +440,17 @@ export default function Review({ videoId }: { videoId: string }) {
     }
   };
 
+  // "Circular no quadro" (técnica): o próximo clique no vídeo vira o círculo da observação
+  const techMark = useRef<((x: number, y: number) => void) | null>(null);
+  const [techMarking, setTechMarking] = useState(false);
+
   function frameClick(x: number, y: number) {
+    if (techMark.current) {
+      techMark.current(x, y);
+      techMark.current = null;
+      setTechMarking(false);
+      return;
+    }
     if (mode === "calibration" && pool) {
       const anchor = anchors.find((a) => a.frame === frame);
       if (!anchor) {
@@ -624,7 +635,7 @@ export default function Review({ videoId }: { videoId: string }) {
             playing={playing}
             videoRef={videoRef}
             onClick={frameClick}
-            cursor={mode === "calibration" || selected ? "crosshair" : "default"}
+            cursor={mode === "calibration" || selected || techMarking ? "crosshair" : "default"}
             hud={
               mode === "review" && showOverlay && overlay ? (
                 <LiveOverlay tl={overlay} t={pts[frame] ?? 0} />
@@ -674,6 +685,7 @@ export default function Review({ videoId }: { videoId: string }) {
           </FrameView>
           </div>
 
+          {techMarking && <p className="mark-hint">Toque no vídeo no ponto que quer circular.</p>}
           <div className="player">
             <div className="player-main">
               <button className="pbtn" onClick={() => { pause(); seek(frame - Math.round(fps)); }} title="Voltar 1 segundo">−1 s</button>
@@ -757,6 +769,26 @@ export default function Review({ videoId }: { videoId: string }) {
             }}
           />
           {error && <p className="error">{error}</p>}
+          {mode === "review" && (
+            <TechniquePanel
+              videoId={videoId}
+              width={W}
+              height={H}
+              frame={frame}
+              t={pts[frame] ?? 0}
+              lane={markLane}
+              pts={pts}
+              eventsKey={events.map((e) => `${e.id}:${e.frame}`).join(",")}
+              onSeek={(f) => { pause(); seek(f); }}
+              requestMark={(cb) => {
+                pause();
+                techMark.current = cb;
+                setTechMarking(true);
+                frameBox.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+              }}
+              onError={(m) => setError(m)}
+            />
+          )}
         </div>
 
         <aside className="side">
