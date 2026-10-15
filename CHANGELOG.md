@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.0 — 2026-10-15
+
+Velocidade ao vivo também sem calibração.
+
+- Marcação guiada ganhou "Marcas de distância": um toque em 5, 10, 12,5, 15 ou 20 m registra a
+  passagem da cabeça no quadro atual.
+- Sem trajetória, a velocidade do painel é a média medida de cada trecho entre posições
+  conhecidas (parede, marcas, viradas, chegada), com o trecho no rótulo: "Vel. 0–5 m",
+  "Vel. 5–15 m". Fora de um trecho medido continua "–"; nada é interpolado.
+- Trechos com velocidade impossível (marca no quadro errado) não aparecem.
+- Resumo final traz a velocidade de cada trecho quando há marcas.
+
 ## 0.6.1 — 2026-10-15
 
 Ajustes da simulação de um pedido real (vídeo gravado com a prova já em andamento).

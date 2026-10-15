@@ -301,3 +301,4 @@ table.points tr.bad td { color: var(--bad); }
 .tech-title select { min-width: 0; }
 .tech-body p.hint { color: var(--muted); }
 .titem { white-space: normal; text-align: left; }
+.mark-btns { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }

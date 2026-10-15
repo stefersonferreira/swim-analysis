@@ -335,7 +335,7 @@ class Painter:
                 ),
                 ("Tempo de ciclo", br(s["tempo"]) if s["tempo"] is not None else "–", "s"),
                 (
-                    "Velocidade",
+                    _speed_label(s.get("speed_span")),
                     br(s["speed"]) if swimming and s["speed"] is not None else "–",
                     "m/s",
                 ),
@@ -898,3 +898,11 @@ def render_mp4(
     if progress:
         progress(1.0)
     return out
+
+
+def _speed_label(span: list | None) -> str:
+    """Média de um trecho entre marcas: o trecho vai no rótulo ("Vel. 5–15 m")."""
+    if not span:
+        return "Velocidade"
+    a, b = (f"{round(d, 1):g}".replace(".", ",") for d in span)
+    return f"Vel. {a}–{b} m"

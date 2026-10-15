@@ -81,6 +81,8 @@ export interface OverlayTimeline {
   callouts: Callout[];
   track: { t: number[]; d: number[]; x: (number | null)[]; y: (number | null)[]; v: (number | null)[] };
   summary: [string, string][];
+  /** sem trajetória: velocidade média por trecho entre posições conhecidas */
+  speed_segments?: { t0: number; t1: number; v: number; d0: number; d1: number }[];
   lanes?: OverlayLane[];
   notes?: string[];
   /** braçadas marcadas só num trecho: a contagem aparece como "–" */
@@ -95,6 +97,8 @@ export interface OverlayState {
   strokes: number;
   tempo: number | null;
   speed: number | null;
+  /** trecho da média mostrada (marcas sem trajetória); null = velocidade instantânea */
+  speedSpan: [number, number] | null;
   raceD: number | null;
   head: [number, number] | null;
   callouts: Callout[];
@@ -143,7 +147,10 @@ export function stateAt(tl: OverlayTimeline, t: number): OverlayState {
   const x = interp(tr.t, tr.x, t);
   const y = interp(tr.t, tr.y, t);
   const kind = ph?.kind ?? null;
-  const v = kind === "swim" || kind === "underwater" || kind === "turn" ? interp(tr.t, tr.v, t) : null;
+  const moving = kind === "swim" || kind === "underwater" || kind === "turn";
+  const seg = (tl.speed_segments ?? []).find((g) => g.t0 <= t && t < g.t1) ?? null;
+  const v = !moving ? null : seg ? seg.v : interp(tr.t, tr.v, t);
+  const speedSpan: [number, number] | null = moving && seg ? [seg.d0, seg.d1] : null;
   const lanes: LaneState[] = (tl.lanes ?? []).map((lr) => {
     const ld = lr.strokes.filter((s) => s[0] <= t);
     return {
@@ -180,6 +187,7 @@ export function stateAt(tl: OverlayTimeline, t: number): OverlayState {
     strokes: done.length,
     tempo,
     speed: v,
+    speedSpan,
     raceD: interp(tr.t, tr.d, t),
     head: x != null && y != null ? [x, y] : null,
     callouts: tl.callouts.filter((c) => c.t <= t && t < c.until).slice(-2),

@@ -356,7 +356,7 @@ export default function Review({ videoId }: { videoId: string }) {
   const pendingCreate = useRef<Promise<string | null> | null>(null);
 
   const createEvent = useCallback(
-    async (type: EventType) => {
+    async (type: EventType, mark?: number) => {
       pause();
       const job = patch({
         // a largada é comum a todas as raias
@@ -364,7 +364,7 @@ export default function Review({ videoId }: { videoId: string }) {
           {
             type,
             frame,
-            mark_m: type === "mark_pass" ? markM : null,
+            mark_m: type === "mark_pass" ? (mark ?? markM) : null,
             lane: type === "start_signal" ? null : markLane,
           },
         ],
@@ -801,7 +801,7 @@ export default function Review({ videoId }: { videoId: string }) {
                 t={pts[frame] ?? 0}
                 lane={markLane}
                 onLane={setMarkLane}
-                onMark={(type) => void createEvent(type)}
+                onMark={(type, m) => void createEvent(type, m)}
                 onMove={(id) => { if (id.startsWith("tmp-")) return; pause(); void patch({ update: [{ id, frame }] }); }}
                 onDelete={(id) => {
                   if (id.startsWith("tmp-")) return;

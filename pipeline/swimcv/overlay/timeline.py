@@ -28,6 +28,11 @@ CALLOUT_S = 2.6  # tempo que um balão fica na tela
 TURN_BEFORE_S = 1.0  # a virada começa um pouco antes do toque
 TRACK_STEP_S = 1 / 15  # amostragem da trajetória enviada ao navegador
 SPEED_WINDOW_S = 1.0
+MIN_SEGMENT_M = 2.0  # trecho mais curto que vira velocidade média (marcas sem trajetória)
+# acima disso o trecho tem marcação errada (recorde mundial nadando ~2,4 m/s); da parede de
+# saída o mergulho permite mais
+MAX_SWIM_MPS = 3.0
+MAX_START_MPS = 6.0
 SUMMARY_TAIL_S = 0.3  # vídeo curto: resumo nos últimos instantes
 START_MAX_S = 2.0  # sem entrada nem pés fora marcados, "Saída" some depois disso
 
@@ -156,6 +161,42 @@ def _speed_series(track: list[TrackSample]) -> list[float | None]:
     return out
 
 
+def _speed_segments(points: list[tuple[float, float]]) -> list[dict]:
+    """Velocidade média de cada trecho entre posições conhecidas (parede, marca, parede).
+
+    Sem trajetória é o que dá para medir: distância conhecida / tempo entre as duas
+    passagens. O painel mostra o trecho junto do número ("Vel. 5–15 m"), nada interpolado.
+    """
+    segs = []
+    if not points:
+        return segs
+    ta, da = points[0]
+    for tb, db in points[1:]:
+        if db <= da + 1e-9:  # ainda no mesmo ponto (apito e saída do bloco): começa depois
+            ta, da = tb, db
+        elif db - da >= MIN_SEGMENT_M and tb - ta > 0.3:
+            v = (db - da) / (tb - ta)
+            if v > (MAX_START_MPS if da == 0 else MAX_SWIM_MPS):
+                ta, da = tb, db  # impossível: não mostra, recomeça daqui
+                continue
+            segs.append(
+                {
+                    "t0": round(ta, 3),
+                    "t1": round(tb, 3),
+                    "v": round(v, 3),
+                    "d0": round(da, 2),
+                    "d1": round(db, 2),
+                }
+            )
+            ta, da = tb, db
+        # posições muito próximas (< 2 m) juntam-se ao trecho seguinte
+    return segs
+
+
+def _m(d: float) -> str:
+    return f"{round(d, 1):g}".replace(".", ",")
+
+
 def build_timeline(
     race: RaceInfo,
     events: list[Event],
@@ -194,6 +235,8 @@ def build_timeline(
 
     track = _track(race, lengths, start, trajectory)
     speeds = _speed_series(track)
+    has_traj = trajectory is not None and len(trajectory.get("t", [])) > 0
+    segments = [] if has_traj else _speed_segments(_race_points(race, lengths, start))
 
     # ---- fases -------------------------------------------------------------------------
     phases: list[dict] = []
@@ -360,9 +403,13 @@ def build_timeline(
         rows.append(["Ritmo", f"{60 / tempo_avg:.0f} ciclos/min"])
     sp = [d["speed"] for d in out_lengths if d["speed"] is not None]
     final_all = _metric(report, "final_time_s", length_index=len(lengths) - 1)
+    marks = [g for g in segments if g["d0"] % L or g["d1"] % L]
     if sp:
         rows.append(["Velocidade", f"{br(sum(sp) / len(sp))} m/s"])
-    elif final_all:  # sem posições: média da prova inteira (distância / tempo)
+    elif marks:  # trechos entre marcas: cada um com a sua média
+        for g in segments[:5]:
+            rows.append([f"Vel. {_m(g['d0'])}–{_m(g['d1'])} m", f"{br(g['v'])} m/s"])
+    if not sp and final_all:  # sem posições: média da prova inteira (distância / tempo)
         rows.append(["Velocidade média", f"{br(race.distance / final_all)} m/s"])
     n_strokes = sum(len(d["strokes"]) for d in out_lengths)
     if n_strokes:
@@ -438,7 +485,7 @@ def build_timeline(
         "n_lengths": race.n_lengths,
         "stroke_word": stroke_word,
         # sem braçadas nem velocidade, o painel só mostraria zeros e traços: fica escondido
-        "has_swim_data": bool(n_strokes) or any(v is not None for v in speeds),
+        "has_swim_data": bool(n_strokes) or bool(segments) or any(v is not None for v in speeds),
         "t0": t0,
         "t_finish": finish.t if finish is not None else None,
         "clock_end": clock_end,
@@ -452,6 +499,8 @@ def build_timeline(
             "y": [None if s.y is None else round(s.y, 1) for s in track],
             "v": speeds,
         },
+        # sem trajetória: velocidade média por trecho entre posições conhecidas
+        "speed_segments": segments,
         "summary": rows,
         "lanes": lanes_out,
         "notes": list(notes or []),
@@ -503,8 +552,12 @@ def state_at(tl: dict, t: float) -> dict:
     x = _interp(tr["t"], tr["x"], t)
     y = _interp(tr["t"], tr["y"], t)
     kind = ph["kind"] if ph else None
+    span = None
+    seg = next((g for g in tl.get("speed_segments", []) if g["t0"] <= t < g["t1"]), None)
+    if seg is not None:
+        v, span = seg["v"], [seg["d0"], seg["d1"]]
     if kind not in ("swim", "underwater", "turn"):
-        v = None
+        v, span = None, None
     active = [c for c in tl["callouts"] if c["t"] <= t < c["until"]]
     lanes = []
     for lr in tl.get("lanes", []):
@@ -548,6 +601,8 @@ def state_at(tl: dict, t: float) -> dict:
         "pulse": bool(done) and t - done[-1][0] < PULSE_S,
         "tempo": tempo,
         "speed": v,
+        # trecho da média mostrada (marcas sem trajetória); None = velocidade instantânea
+        "speed_span": span,
         "race_d": d,
         "head": [x, y] if x is not None and y is not None else None,
         "callouts": active[-2:],

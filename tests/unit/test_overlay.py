@@ -119,12 +119,15 @@ def test_sparse_events_do_not_break():
 
 
 @pytest.mark.skipif(not shutil.which("node"), reason="node não instalado")
-@pytest.mark.parametrize("which", ["free", "free_traj", "breast", "lanes"])
+@pytest.mark.parametrize("which", ["free", "free_traj", "breast", "lanes", "marks"])
 def test_browser_state_matches_python(tmp_path, which):
     """state.ts (navegador) e state_at (MP4) dão o mesmo resultado."""
     if which == "breast":
         race, evs = breast_50m()
         tl = build_timeline(race, evs, compute_metrics(race, evs))
+    elif which == "marks":
+        race, evs = pushoff_with_marks()
+        tl = build_timeline(race, evs, compute_metrics(race, evs), duration_s=19.0)
     elif which == "lanes":
         from swimcv.metrics import athlete_events
         from tests.unit.test_lanes import three_lanes
@@ -152,7 +155,12 @@ def test_browser_state_matches_python(tmp_path, which):
         cwd=Path(__file__).resolve().parents[2],
     )
     js = json.loads(out.stdout)
-    keys = {"phase_label": "phaseLabel", "race_d": "raceD", "show_summary": "showSummary"}
+    keys = {
+        "phase_label": "phaseLabel",
+        "race_d": "raceD",
+        "show_summary": "showSummary",
+        "speed_span": "speedSpan",
+    }
     for t, b in zip(times, js, strict=True):
         a = state_at(tl, t)
         for k, v in a.items():
@@ -205,7 +213,10 @@ def test_walls_only_and_partial_strokes_do_not_invent_numbers():
     )  # fmt: skip
     assert tl["track"]["d"] == []
     s = state_at(tl, 10.0)
-    assert s["race_d"] is None and s["speed"] is None
+    # sem barra de progresso; a velocidade é a média medida entre as paredes, com o trecho
+    assert s["race_d"] is None
+    assert s["speed"] == pytest.approx(25 / (27.0 - 2.1), abs=1e-3)
+    assert s["speed_span"] == [0, 25]
     rows = dict(tl["summary"])
     assert rows["Ciclos"] == "–"
     assert rows["Ritmo"] == "50 ciclos/min"
@@ -237,3 +248,49 @@ def test_without_finish_the_clock_clears_at_the_end_summary():
     assert state_at(tl, 10.0)["clock"] == pytest.approx(9.8)  # tempo desde a largada, ao vivo
     end = state_at(tl, 13.9)
     assert end["show_summary"] and end["clock"] is None
+
+
+def pushoff_with_marks():
+    """Saída de dentro da água (impulso na parede) e passagens pelas marcas de 5 e 15 m."""
+    from swimcv.contracts import Event, RaceInfo, Stroke
+
+    race = RaceInfo(stroke=Stroke.FREESTYLE, distance=25, pool_length=25)
+
+    def ev(ty, t, **kw):
+        return Event(type=ty, frame=round(t * 30), t=t, **kw)
+
+    evs = [ev(EventType.START_SIGNAL, 0.2), ev(EventType.ENTRY, 0.2), ev(EventType.BREAKOUT, 3.45)]
+    evs += [ev(EventType.MARK_PASS, 2.6, mark_m=5.0), ev(EventType.MARK_PASS, 8.6, mark_m=15.0)]
+    evs += [ev(EventType.STROKE, t) for t in (3.8, 4.27, 4.87, 5.3, 5.7, 6.13, 6.6, 7.0)]
+    return race, evs
+
+
+def test_marks_give_live_speed_per_segment_without_trajectory():
+    race, evs = pushoff_with_marks()
+    tl = build_timeline(race, evs, compute_metrics(race, evs), duration_s=19.0)
+    segs = tl["speed_segments"]
+    assert [(g["d0"], g["d1"]) for g in segs] == [(0, 5), (5, 15)]
+    assert segs[0]["v"] == pytest.approx(5 / 2.4, abs=1e-3)
+    assert segs[1]["v"] == pytest.approx(10 / 6.0, abs=1e-3)
+    s = state_at(tl, 1.5)  # submerso, entre a parede e os 5 m
+    assert s["speed"] == pytest.approx(2.083, abs=1e-3) and s["speed_span"] == [0, 5]
+    s = state_at(tl, 6.0)
+    assert s["speed"] == pytest.approx(1.667, abs=1e-3) and s["speed_span"] == [5, 15]
+    # depois da última marca não há medida: nada de número
+    s = state_at(tl, 10.0)
+    assert s["speed"] is None and s["speed_span"] is None
+    rows = dict(tl["summary"])
+    assert rows["Vel. 0–5 m"] == "2,08 m/s" and rows["Vel. 5–15 m"] == "1,67 m/s"
+
+
+def test_impossible_segment_speed_is_not_shown():
+    """Marca no quadro errado (10 m em 0,4 s) não vira um número absurdo no vídeo."""
+    from swimcv.contracts import Event
+
+    race, evs = pushoff_with_marks()
+    evs.append(Event(type=EventType.MARK_PASS, frame=270, t=9.0, mark_m=20.0))
+    evs = [e for e in evs if not (e.type == EventType.MARK_PASS and e.mark_m == 15.0)]
+    evs.append(Event(type=EventType.MARK_PASS, frame=264, t=8.8, mark_m=10.0))
+    tl = build_timeline(race, evs, compute_metrics(race, evs))
+    assert [(g["d0"], g["d1"]) for g in tl["speed_segments"]] == [(0, 5), (5, 10)]
+    assert all(g["v"] < 3 for g in tl["speed_segments"])

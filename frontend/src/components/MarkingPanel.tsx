@@ -16,7 +16,16 @@ type Step = {
   shared?: boolean; // vale para todas as raias (largada)
   many?: boolean; // vários por atleta (ciclos)
   nth?: number; // virada n (0 = primeira)
+  optional?: boolean; // não entra no "próximo passo"
 };
+
+/** Marcas que costumam dar para ver: bandeiras de costas (5 m), meio da piscina, 15 m. */
+export function markDistances(pool: number): number[] {
+  const c = [5, 10, 15, pool / 2, pool - 15, pool - 10, pool - 5];
+  return [...new Set(c.filter((m) => m > 0 && m < pool))].sort((a, b) => a - b);
+}
+
+const meters = (m: number) => String(m).replace(".", ",");
 
 export function stepsFor(race: RaceInfo): Step[] {
   const breast = race.stroke === "breaststroke";
@@ -50,6 +59,18 @@ export function stepsFor(race: RaceInfo): Step[] {
         : "Marque cada vez que uma mão entra na água. Pode marcar só o trecho em que o atleta aparece bem.",
       many: true,
     },
+    {
+      key: "marks",
+      type: "mark_pass",
+      label: "Marcas de distância",
+      tip:
+        "Opcional, mas é o que dá a velocidade: pare no quadro em que a cabeça passa por uma " +
+        "marca conhecida (bandeira de costas a 5 m da parede, meio da piscina, troca de cor da " +
+        "raia) e toque na distância. Conta a partir da parede de onde o atleta saiu nesta " +
+        "piscina. Cada par de marcas vira a velocidade média daquele trecho.",
+      many: true,
+      optional: true,
+    },
   ];
   for (let k = 0; k < n - 1; k++) {
     steps.push({
@@ -78,7 +99,7 @@ type Props = {
   t: number;
   lane: number | null;
   onLane: (lane: number | null) => void;
-  onMark: (type: EventType) => void;
+  onMark: (type: EventType, markM?: number) => void;
   onMove: (id: string) => void;
   onDelete: (id: string) => void;
   onGo: (e: SwimEvent) => void;
@@ -112,7 +133,7 @@ export default function MarkingPanel(p: Props) {
   };
 
   // próximo passo: o primeiro que falta (os ciclos só contam como faltando se não há nenhum)
-  const next = steps.find((s) => of(s).length === 0) ?? null;
+  const next = steps.find((s) => !s.optional && of(s).length === 0) ?? null;
 
   const who = p.lane == null ? (race.lane ? `Raia ${race.lane}` : "Atleta") : `Raia ${p.lane}`;
   const cur = fmtTime(p.t);
@@ -210,6 +231,27 @@ export default function MarkingPanel(p: Props) {
                   {s.many && done ? ` · ${list.length}` : ""}
                   {s.shared && <span className="muted small"> · todas as raias</span>}
                 </div>
+                {s.type === "mark_pass" && (
+                  <>
+                    <div className="muted small" title={s.tip}>
+                      Opcional, mas é o que dá a velocidade. Pare quando a cabeça passa por uma
+                      marca conhecida (bandeira a 5 m, meio da piscina) e toque na distância:
+                    </div>
+                    <div className="mark-btns">
+                      {markDistances(race.pool_length).map((m) => (
+                        <button
+                          key={m}
+                          className="btn small"
+                          onClick={() => p.onMark("mark_pass", m)}
+                          title={`A cabeça passa a ${meters(m)} m da parede de onde saiu, neste quadro`}
+                          data-testid={`mark-${m}`}
+                        >
+                          {meters(m)} m
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
                 {done && !s.many && (
                   <button
                     className={`link small ${list[0].id === p.selectedId ? "sel" : ""}`}
@@ -229,8 +271,9 @@ export default function MarkingPanel(p: Props) {
                         key={e.id}
                         className={`tchip ${e.id === p.selectedId ? "sel" : ""}`}
                         onClick={() => p.onGo(e)}
-                        title="Ir para este ciclo"
+                        title={s.type === "mark_pass" ? "Ir para esta marca" : "Ir para este ciclo"}
                       >
+                        {s.type === "mark_pass" && e.mark_m != null ? `${meters(e.mark_m)} m · ` : ""}
                         {e.t.toFixed(2).replace(".", ",")}
                       </button>
                     ))}
@@ -240,9 +283,11 @@ export default function MarkingPanel(p: Props) {
               <div className="acts">
                 {s.many ? (
                   <>
-                    <button className="btn small" onClick={() => p.onMark(s.type)}>
-                      + aqui
-                    </button>
+                    {s.type !== "mark_pass" && (
+                      <button className="btn small" onClick={() => p.onMark(s.type)}>
+                        + aqui
+                      </button>
+                    )}
                     {done && (
                       <button
                         className="btn small ghost"

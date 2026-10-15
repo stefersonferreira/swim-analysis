@@ -127,6 +127,11 @@ def main(video: str, out: str = "e2e-shots") -> None:
         page.click("[data-testid=mark-next]")
         expect(page.locator(".timeline rect[data-ev]")).to_have_count(13)
         expect(page.locator(".steps li.done")).to_have_count(4)  # apito, bloco, entrada, braçadas
+        # marca de distância (opcional): um toque na distância cria a passagem neste quadro
+        page.get_by_role("button", name="quadro ▶").click()
+        page.click("[data-testid=mark-10]")
+        expect(page.locator(".timeline rect[data-ev]")).to_have_count(14)
+        expect(page.locator(".steps li.done")).to_have_count(5)
         # outra raia: o passo a passo recomeça para ela (a largada vale para todas)
         page.click("[data-testid=add-lane]")
         page.locator(".add-lane").get_by_role("button", name="4").click()

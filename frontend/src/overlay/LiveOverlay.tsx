@@ -51,7 +51,12 @@ export default function LiveOverlay({ tl, t }: { tl: OverlayTimeline; t: number 
             unit="s"
             pulse={s.pulse && s.tempo != null}
           />
-          <Stat label="Velocidade" value={swimming && s.speed != null ? br(s.speed) : "–"} unit="m/s" />
+          <Stat
+            label={s.speedSpan ? `Vel. ${meters(s.speedSpan[0])}–${meters(s.speedSpan[1])} m` : "Velocidade"}
+            value={swimming && s.speed != null ? br(s.speed) : "–"}
+            unit="m/s"
+            testid="fx-speed"
+          />
         </div>
       )}
 
@@ -277,4 +282,9 @@ function LanesSummary({ tl, lanes }: { tl: OverlayTimeline; lanes: OverlayLane[]
       ))}
     </div>
   );
+}
+
+/** 12.5 – "12,5"; 5 – "5" */
+function meters(d: number): string {
+  return String(Math.round(d * 10) / 10).replace(".", ",");
 }

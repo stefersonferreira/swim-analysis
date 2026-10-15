@@ -72,6 +72,10 @@ Vídeos e resultados ficam em `./data`; o banco, no volume `pgdata`.
    atual. Para corrigir, toque no horário do momento, ajuste o quadro e use "Mudar p/ cá"; "✕"
    apaga. Vários atletas no vídeo: "+ Raia" para cada um e marque um de cada vez. O que você
    corrige nunca é sobrescrito por uma nova análise.
+   **Velocidade sem calibração:** em "Marcas de distância", pare no quadro em que a cabeça
+   passa por uma marca conhecida (bandeira de costas a 5 m, meio da piscina) e toque na
+   distância. Cada trecho entre parede e marca, ou entre duas marcas, mostra ao vivo a sua
+   velocidade média ("Vel. 5–15 m"). Sem nenhuma marca nem chegada, a velocidade fica "–".
 5. **Sobreposição e vídeo:** durante a reprodução aparecem relógio de prova, fase, braçadas,
    tempo de ciclo, velocidade, balões que seguem o nadador (breakout, 15 m, parciais, chegada)
    e a barra de progresso. "Modo apresentação" abre em tela cheia sem as marcações de edição.
